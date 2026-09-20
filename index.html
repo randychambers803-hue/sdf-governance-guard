@@ -1,0 +1,2913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>SDF Governance Guard — From Signal to Governed Action</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#0a0f1e',
+            surface: '#141929',
+            headerBg: '#0d1225',
+            accent: '#f5a623',
+            detect: '#06b6d4',
+            classify: '#f59e0b',
+            context: '#eab308',
+            enforce: '#8b5cf6',
+            route: '#0ea5e9',
+            audit: '#22c55e',
+            textPrimary: '#f1f5f9',
+            textSecondary: '#94a3b8',
+            textMuted: '#64748b',
+            textDim: '#475569',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+    </script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #0a0f1e;
+        color: #f1f5f9;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header */
+      .app-header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        height: 52px;
+        background: #0d1225;
+        border-bottom: 1px solid rgba(245,166,35,0.3);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px;
+      }
+      .header-brand { display: flex; align-items: center; gap: 10px; }
+      .header-shield { color: #f5a623; font-size: 22px; line-height: 1; }
+      .header-title { font-size: 18px; font-weight: 700; color: #fff; white-space: nowrap; }
+      .header-subtitle { font-size: 13px; color: #94a3b8; white-space: nowrap; }
+      .header-partner { font-size: 11px; color: #f5a623; white-space: nowrap; }
+
+      /* Tabs */
+      .tab-bar {
+        position: fixed; top: 52px; left: 0; right: 0; z-index: 99;
+        background: #0d1225;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex; height: 48px;
+      }
+      .tab-btn {
+        flex: 1; display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 500;
+        color: #64748b; background: transparent;
+        border: none; border-bottom: 3px solid transparent;
+        cursor: pointer; transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+        flex-direction: column;
+        gap: 1px;
+        padding: 4px 6px;
+        line-height: 1.2;
+      }
+      .tab-btn:hover { color: #94a3b8; }
+      .tab-btn.active {
+        color: #fff;
+        border-bottom-color: #f5a623;
+        background: rgba(245,166,35,0.06);
+      }
+      .tab-main-label { font-size: 12px; font-weight: 600; }
+      .tab-sub-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; }
+
+      /* Content area */
+      .content-area {
+        flex: 1;
+        margin-top: 100px;
+        overflow-y: auto;
+        padding: 28px 32px;
+        padding-bottom: 60px;
+      }
+
+      /* Initial CTA */
+      .cta-container {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-height: calc(100vh - 220px);
+        text-align: center;
+        transition: opacity 0.3s ease;
+      }
+      .live-badge {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 16px; border-radius: 20px;
+        background: rgba(245,166,35,0.1);
+        border: 1px solid rgba(245,166,35,0.25);
+        font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+        color: #f5a623; text-transform: uppercase;
+        margin-bottom: 24px;
+      }
+      .pulse-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #f5a623;
+        animation: pulseDot 1.5s ease-in-out infinite;
+      }
+      @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.7); }
+      }
+      .cta-title { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+      .cta-subtitle { font-size: 15px; color: #94a3b8; max-width: 560px; line-height: 1.6; }
+      .cta-button {
+        margin-top: 32px;
+        background: #f5a623; color: #0a0f1e;
+        font-size: 16px; font-weight: 700;
+        padding: 16px 40px; border-radius: 10px;
+        border: none; cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: filter 0.15s;
+      }
+      .cta-button:hover { filter: brightness(1.1); }
+      .cta-hint { font-size: 12px; color: #64748b; margin-top: 16px; }
+
+      /* Stage cards */
+      .stages-container { display: none; flex-direction: column; gap: 16px; max-width: 900px; margin: 0 auto; }
+      .stages-container.visible { display: flex; }
+
+      .stage-card {
+        background: #141929;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        padding: 20px 24px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(24px);
+        pointer-events: none;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out, border-color 0.8s ease, box-shadow 0.8s ease;
+      }
+      .stage-card.revealed {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .stage-card .left-accent {
+        position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+        border-radius: 12px 0 0 12px;
+      }
+      .stage-card.glowing { box-shadow: var(--glow-shadow); }
+
+      .stage-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .stage-num {
+        width: 32px; height: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 700; color: #0a0f1e; flex-shrink: 0;
+      }
+      .stage-badge {
+        font-size: 11px; font-weight: 700;
+        letter-spacing: 1.2px; text-transform: uppercase;
+      }
+      .sdf-pill {
+        font-size: 10px; font-weight: 700;
+        padding: 3px 10px; border-radius: 10px;
+        letter-spacing: 0.5px; margin-left: auto;
+      }
+      .stage-title { font-size: 17px; font-weight: 700; color: #fff; margin-top: 12px; }
+      .section-label {
+        font-size: 9px; font-weight: 600; letter-spacing: 1.5px;
+        text-transform: uppercase; margin-top: 10px;
+      }
+      .section-text { font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-top: 4px; }
+      .decision-text { font-size: 13px; color: #94a3b8; font-style: italic; margin-top: 4px; }
+      .data-strip {
+        margin-top: 12px; background: #0a0f1e;
+        border-radius: 6px; padding: 8px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px; color: #94a3b8;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+
+      /* Cardinal Rule */
+      .cardinal-card {
+        border: 1px solid #f5a623;
+        background: rgba(245,166,35,0.05);
+        border-radius: 12px;
+        padding: 28px 32px;
+        text-align: center;
+        opacity: 0; transform: translateY(24px);
+        pointer-events: none;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+      }
+      .cardinal-card.revealed { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .cardinal-label {
+        font-size: 11px; font-weight: 700; color: #f5a623;
+        letter-spacing: 2px; text-transform: uppercase;
+      }
+      .cardinal-text { font-size: 22px; font-weight: 700; color: #fff; margin-top: 12px; }
+      .cardinal-tiers { font-size: 14px; color: #94a3b8; margin-top: 12px; }
+      .run-again-btn {
+        margin-top: 24px;
+        border: 1px solid #f5a623; color: #f5a623;
+        background: transparent; padding: 10px 28px;
+        border-radius: 8px; font-size: 14px; font-weight: 500;
+        cursor: pointer; font-family: 'Inter', sans-serif;
+        transition: background 0.15s;
+      }
+      .run-again-btn:hover { background: rgba(245,166,35,0.1); }
+      .reset-btn {
+        border: 1px solid #64748b; color: #64748b;
+        background: transparent; padding: 6px 16px;
+        border-radius: 8px; font-size: 13px; font-weight: 500;
+        cursor: pointer; font-family: 'Inter', sans-serif;
+        transition: all 0.15s; display: none;
+      }
+      .reset-btn:hover { color: #94a3b8; border-color: #94a3b8; }
+      .reset-btn.visible { display: inline-flex; align-items: center; gap: 6px; }
+
+      /* ═══ STORY 2 ═══ */
+      .arch-section { max-width: 1000px; margin: 0 auto; }
+      .arch-title { font-size: 16px; font-weight: 700; color: #fff; }
+      .arch-subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+      /* Integration surface row */
+      .integration-row {
+        display: flex; align-items: center; gap: 0;
+        margin-top: 28px; overflow-x: auto;
+        padding-bottom: 8px;
+      }
+      .component-box {
+        background: #141929;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px 16px;
+        text-align: center;
+        flex: 1; min-width: 180px;
+      }
+      .comp-icon { font-size: 36px; line-height: 1; margin-bottom: 8px; display: block; }
+      .comp-name { font-size: 15px; font-weight: 700; color: #fff; }
+      .comp-subtitle {
+        font-size: 11px; font-weight: 600;
+        letter-spacing: 1px; text-transform: uppercase;
+        margin-top: 4px;
+      }
+      .comp-desc { font-size: 12px; color: #94a3b8; line-height: 1.5; margin-top: 8px; }
+      .payload-link {
+        display: inline-block; margin-top: 10px;
+        color: #f5a623; font-size: 13px; font-weight: 500;
+        cursor: pointer; border: none; background: none;
+        font-family: 'Inter', sans-serif;
+        transition: opacity 0.15s;
+      }
+      .payload-link:hover { opacity: 0.8; }
+
+      /* Animated arrows */
+      .flow-arrow {
+        width: 48px; min-width: 48px;
+        height: 6px; position: relative;
+        overflow: hidden; flex-shrink: 0;
+      }
+      .flow-arrow .track {
+        position: absolute; top: 50%; left: 0; right: 0;
+        height: 2px; background: rgba(245,166,35,0.15);
+        transform: translateY(-50%);
+      }
+      .flow-dot {
+        position: absolute; top: 50%;
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #f5a623;
+        transform: translateY(-50%);
+        animation: flowDot 1.8s linear infinite;
+      }
+      .flow-dot:nth-child(2) { animation-delay: 0.6s; }
+      .flow-dot:nth-child(3) { animation-delay: 1.2s; }
+      @keyframes flowDot {
+        0% { left: -10px; opacity: 0; }
+        15% { opacity: 1; }
+        85% { opacity: 1; }
+        100% { left: calc(100% + 10px); opacity: 0; }
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed; inset: 0; z-index: 200;
+        background: rgba(0,0,0,0.75);
+        display: none; align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      .modal-overlay.open { display: flex; }
+      .modal-card {
+        background: #141929;
+        border: 1px solid rgba(245,166,35,0.3);
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 700px; width: 100%;
+        max-height: 90vh; overflow-y: auto;
+        position: relative;
+      }
+      .modal-close {
+        position: absolute; top: 16px; right: 16px;
+        background: none; border: none;
+        color: #64748b; cursor: pointer;
+        font-size: 20px; line-height: 1;
+        transition: color 0.15s;
+        font-family: 'Inter', sans-serif;
+      }
+      .modal-close:hover { color: #fff; }
+      .modal-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .modal-title { font-size: 18px; font-weight: 700; color: #fff; }
+      .modal-pill {
+        font-size: 11px; font-weight: 600;
+        padding: 4px 12px; border-radius: 12px;
+        background: rgba(245,166,35,0.15);
+        color: #f5a623;
+      }
+      .modal-subtitle { font-size: 13px; color: #64748b; margin-top: 8px; }
+      .payload-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+      .payload-table th {
+        font-size: 10px; font-weight: 600;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: #64748b; text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .payload-table td {
+        padding: 10px 12px; font-size: 13px; color: #cbd5e1;
+        vertical-align: top;
+      }
+      .payload-table tr:nth-child(even) td { background: #0f1520; }
+      .payload-table tr:nth-child(odd) td { background: #141929; }
+      .payload-table tr.highlight td {
+        background: rgba(245,166,35,0.1);
+        border-left: 3px solid #f5a623;
+      }
+      .payload-table .field-name { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #94a3b8; }
+      .payload-table .field-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+      .payload-table .field-why { font-size: 12px; color: #94a3b8; }
+
+      /* Handoff Explorer */
+      .handoff-btns { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+      .handoff-btn {
+        padding: 10px 20px; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer; font-family: 'Inter', sans-serif;
+        background: #141929;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #64748b;
+        transition: all 0.2s;
+      }
+      .handoff-btn:hover { color: #94a3b8; }
+      .handoff-btn.active {
+        background: rgba(245,166,35,0.15);
+        border-color: #f5a623;
+        color: #f5a623;
+      }
+      .handoff-panel {
+        margin-top: 20px;
+        opacity: 0; transition: opacity 0.2s ease;
+        display: none;
+      }
+      .handoff-panel.active { display: block; opacity: 1; }
+      .handoff-header { font-size: 15px; font-weight: 700; color: #fff; }
+      .handoff-body { font-size: 14px; color: #94a3b8; line-height: 1.7; margin-top: 12px; }
+      .key-principle {
+        margin-top: 16px; background: #0a0f1e;
+        border-radius: 8px; padding: 12px 16px;
+      }
+      .kp-label {
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 1.5px; text-transform: uppercase;
+      }
+      .kp-text { font-size: 13px; color: #cbd5e1; margin-top: 6px; line-height: 1.6; }
+      .primary-badge {
+        display: inline-block;
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase;
+        padding: 4px 12px; border-radius: 10px;
+        background: rgba(245,166,35,0.15);
+        color: #f5a623; margin-bottom: 12px;
+      }
+
+      /* Footer */
+      .app-footer {
+        background: #0d1225;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 12px 24px;
+        display: flex; align-items: center; justify-content: space-between;
+        flex-shrink: 0; flex-wrap: wrap; gap: 8px;
+      }
+      .footer-text { font-size: 11px; color: #475569; }
+
+      /* ═══ STORY 2 ═══ */
+      .s3-badge-row {
+        display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap;
+      }
+      .s3-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 14px; border-radius: 16px;
+        font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+        white-space: nowrap;
+      }
+      .s3-connector {
+        width: 28px; height: 2px; flex-shrink: 0;
+      }
+      .s3-pill-pulse {
+        animation: s3PillPulse 2s ease-in-out infinite;
+      }
+      @keyframes s3PillPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.4); }
+        50% { box-shadow: 0 0 0 6px rgba(245,166,35,0); }
+      }
+
+      /* Narrator bar */
+      .narrator-bar {
+        background: #0d1225;
+        border-bottom: 1px solid rgba(245,166,35,0.2);
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+      .narrator-toggle {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 16px; cursor: pointer;
+        border: none; background: none; width: 100%;
+        font-family: 'Inter', sans-serif;
+      }
+      .narrator-toggle:hover { background: rgba(245,166,35,0.04); }
+      .narrator-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #f5a623; }
+      .narrator-arrow { color: #f5a623; font-size: 14px; transition: transform 0.3s; }
+      .narrator-bar.collapsed .narrator-content { display: none; }
+      .narrator-bar.collapsed .narrator-arrow { transform: rotate(0deg); }
+      .narrator-bar:not(.collapsed) .narrator-arrow { transform: rotate(180deg); }
+      .narrator-content { padding: 0 16px 14px; }
+      .narrator-step {
+        font-size: 12px; color: #475569; line-height: 1.7;
+        padding: 4px 0; transition: color 0.3s;
+      }
+      .narrator-step.active { color: #f5a623; }
+      .narrator-step span.step-num { font-weight: 700; margin-right: 6px; }
+
+      /* S3 Pipeline panels */
+      .s3-pipeline {
+        display: grid;
+        grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+        gap: 0;
+        align-items: stretch;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      @media (max-width: 999px) {
+        .s3-pipeline {
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .s3-pipeline .s3-arrow { display: none; }
+      }
+      .s3-panel {
+        background: #141929;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+        position: relative;
+        transition: opacity 0.4s, border-color 0.4s, box-shadow 0.4s, background 0.4s;
+        display: flex;
+        flex-direction: column;
+      }
+      .s3-panel.locked {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+      .s3-panel.locked::after {
+        content: '🔒 Complete previous step';
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; color: #475569;
+        background: rgba(10,15,30,0.6);
+        border-radius: 12px;
+        z-index: 5;
+      }
+      .s3-panel.active-glow { box-shadow: var(--panel-glow); }
+      .s3-panel.completed { border-color: var(--panel-color); }
+
+      .s3-arrow {
+        display: flex; align-items: center; justify-content: center;
+        position: relative; overflow: hidden;
+      }
+      .s3-arrow .track {
+        width: 100%; height: 2px;
+        background: rgba(245,166,35,0.15);
+        position: relative; overflow: hidden;
+      }
+      .s3-arrow .flow-dot {
+        position: absolute; top: 50%;
+        width: 5px; height: 5px; border-radius: 50%;
+        background: #f5a623;
+        transform: translateY(-50%);
+        animation: flowDot 1.8s linear infinite;
+      }
+      .s3-arrow .flow-dot:nth-child(2) { animation-delay: 0.6s; }
+      .s3-arrow .flow-dot:nth-child(3) { animation-delay: 1.2s; }
+
+      .s3-panel-header {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+      }
+      .s3-panel-num {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 700; color: #0a0f1e; flex-shrink: 0;
+      }
+      .s3-panel-badge {
+        font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      }
+      .s3-panel-layer {
+        font-size: 9px; color: #475569; letter-spacing: 0.5px; margin-left: auto;
+      }
+
+      .s3-field-label {
+        font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+        text-transform: uppercase; color: #64748b; margin-bottom: 6px; margin-top: 12px;
+      }
+
+      /* Custom select */
+      .s3-select {
+        width: 100%; padding: 8px 12px;
+        background: #0a0f1e; color: #f1f5f9;
+        border: 1px solid #06b6d4; border-radius: 6px;
+        font-family: 'Inter', sans-serif; font-size: 13px;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        cursor: pointer;
+      }
+      .s3-select:focus { outline: none; border-color: #22d3ee; }
+
+      /* Custom slider */
+      .s3-slider-wrap { position: relative; margin-top: 4px; }
+      .s3-slider {
+        width: 100%; height: 6px; -webkit-appearance: none; appearance: none;
+        background: #1e293b; border-radius: 4px; outline: none;
+      }
+      .s3-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 20px; height: 20px;
+        border-radius: 50%; background: #f5a623; cursor: pointer;
+        border: 2px solid #0a0f1e;
+      }
+      .s3-slider::-moz-range-thumb {
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #f5a623; cursor: pointer; border: 2px solid #0a0f1e;
+      }
+      .s3-slider-labels {
+        display: flex; justify-content: space-between; margin-top: 4px;
+        font-size: 10px; font-weight: 600;
+      }
+      .s3-risk-pill {
+        display: inline-block; padding: 3px 12px; border-radius: 10px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+        margin-top: 6px;
+      }
+
+      /* Signal preview */
+      .s3-signal-preview {
+        margin-top: 12px; background: #0a0f1e;
+        border-left: 3px solid #06b6d4;
+        border-radius: 0 6px 6px 0; padding: 8px 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px; color: #94a3b8; line-height: 1.7;
+      }
+
+      /* S3 action button */
+      .s3-action-btn {
+        width: 100%; margin-top: 16px;
+        padding: 12px; border-radius: 8px;
+        font-size: 14px; font-weight: 700;
+        border: none; cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: filter 0.15s, opacity 0.15s;
+      }
+      .s3-action-btn:hover { filter: brightness(1.1); }
+      .s3-action-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+      /* JSON typewriter */
+      .s3-json-box {
+        background: #0a0f1e; border-radius: 8px; padding: 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px; line-height: 1.8; color: #94a3b8;
+        min-height: 180px; white-space: pre-wrap; word-break: break-all;
+      }
+      .json-highlight { animation: jsonFlash 0.3s ease; }
+      @keyframes jsonFlash {
+        0%, 100% { background: transparent; }
+        50% { background: rgba(245,166,35,0.15); }
+      }
+
+      /* Toggle switch */
+      .s3-toggle-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 0; gap: 8px;
+      }
+      .s3-toggle-label { font-size: 12px; color: #cbd5e1; }
+      .s3-toggle-hint { font-size: 10px; color: #64748b; }
+      .s3-toggle {
+        width: 40px; height: 22px; border-radius: 11px;
+        background: #475569; position: relative;
+        cursor: pointer; transition: background 0.2s;
+        flex-shrink: 0; border: none;
+      }
+      .s3-toggle.on { background: #f5a623; }
+      .s3-toggle::after {
+        content: ''; position: absolute;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #fff; top: 2px; left: 2px;
+        transition: transform 0.2s;
+      }
+      .s3-toggle.on::after { transform: translateX(18px); }
+      .s3-toggle.red-on { background: #ef4444; }
+
+      /* Bypass warning */
+      .s3-bypass-warning {
+        margin-top: 8px; padding: 10px 14px;
+        background: rgba(239,68,68,0.08);
+        border-left: 4px solid #ef4444;
+        border-radius: 0 6px 6px 0;
+        font-size: 12px; color: #ef4444; line-height: 1.6;
+        display: none;
+      }
+      .s3-bypass-warning.visible { display: block; }
+      .s3-restore-msg {
+        margin-top: 8px; padding: 10px 14px;
+        background: rgba(34,197,94,0.08);
+        border-left: 4px solid #22c55e;
+        border-radius: 0 6px 6px 0;
+        font-size: 12px; color: #22c55e; line-height: 1.6;
+        display: none;
+      }
+      .s3-restore-msg.visible { display: block; }
+
+      /* Causal timeline */
+      .s3-timeline {
+        display: flex; align-items: center; gap: 0;
+        margin-top: 8px; overflow-x: auto; padding-bottom: 4px;
+      }
+      .s3-timeline-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #8b5cf6; flex-shrink: 0;
+      }
+      .s3-timeline-dot.pulse { animation: violetPulse 1.5s ease-in-out infinite; }
+      @keyframes violetPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.5); }
+        50% { box-shadow: 0 0 0 6px rgba(139,92,246,0); }
+      }
+      .s3-timeline-line { flex: 1; height: 2px; background: rgba(139,92,246,0.3); min-width: 10px; }
+      .s3-timeline-label { font-size: 9px; color: #94a3b8; margin-top: 4px; text-align: center; white-space: nowrap; }
+
+      /* Checkboxes */
+      .s3-check-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 0; font-size: 13px;
+      }
+      .s3-check-item input[type="checkbox"] {
+        accent-color: #22c55e; width: 16px; height: 16px; cursor: pointer;
+      }
+      .s3-check-item.blocked { opacity: 0.4; text-decoration: line-through; color: #64748b; }
+      .s3-check-item.needs-approval { color: #f59e0b; }
+      .s3-check-item.allowed { color: #cbd5e1; }
+
+      /* Validation strip */
+      .s3-validation {
+        margin-top: 12px; background: #0a0f1e;
+        border-radius: 6px; padding: 8px 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px; color: #22c55e; line-height: 1.8;
+      }
+
+      /* Audit record */
+      .s3-audit-record {
+        margin-top: 24px; background: #141929;
+        border: 1px solid #22c55e; border-radius: 12px;
+        padding: 24px; opacity: 0; transform: translateY(20px);
+        transition: opacity 0.5s, transform 0.5s;
+      }
+      .s3-audit-record.visible { opacity: 1; transform: translateY(0); }
+      .s3-audit-header {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      }
+      .s3-audit-title { font-size: 18px; font-weight: 700; color: #22c55e; }
+      .s3-audit-badge {
+        font-size: 10px; font-weight: 600; padding: 4px 12px;
+        border-radius: 10px; background: rgba(34,197,94,0.15); color: #22c55e;
+      }
+      .s3-audit-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px;
+      }
+      @media (max-width: 640px) {
+        .s3-audit-grid { grid-template-columns: 1fr; }
+      }
+      .s3-audit-col h4 {
+        font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+        text-transform: uppercase; margin-bottom: 8px;
+      }
+      .s3-audit-col p { font-size: 13px; color: #94a3b8; line-height: 1.7; }
+      .s3-audit-col .val { color: #cbd5e1; }
+
+      /* Platform standard card */
+      .s3-platform-card {
+        margin-top: 20px; border: 1px solid #f5a623;
+        background: rgba(245,166,35,0.04);
+        border-radius: 12px; padding: 32px; text-align: center;
+        opacity: 0; transform: translateY(20px);
+        transition: opacity 0.5s, transform 0.5s;
+      }
+      .s3-platform-card.visible { opacity: 1; transform: translateY(0); }
+
+      /* Cross-framework collapsible */
+      .s3-xfw-card {
+        margin-top: 24px; border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px; overflow: hidden;
+      }
+      .s3-xfw-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 20px; cursor: pointer;
+        background: #141929; border: none; width: 100%;
+        font-family: 'Inter', sans-serif; color: #f1f5f9;
+        font-size: 14px; font-weight: 600;
+      }
+      .s3-xfw-header:hover { background: #1a2035; }
+      .s3-xfw-arrow { color: #64748b; transition: transform 0.3s; font-size: 14px; }
+      .s3-xfw-card.expanded .s3-xfw-arrow { transform: rotate(180deg); }
+      .s3-xfw-body { display: none; padding: 0 20px 20px; background: #141929; }
+      .s3-xfw-card.expanded .s3-xfw-body { display: block; }
+      .s3-xfw-cols {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;
+      }
+      @media (max-width: 640px) { .s3-xfw-cols { grid-template-columns: 1fr; } }
+      .s3-xfw-side {
+        background: #0f1520; border-radius: 8px; padding: 16px;
+      }
+      .s3-xfw-resolution {
+        margin-top: 16px; border: 1px solid #f5a623;
+        background: rgba(245,166,35,0.05);
+        border-radius: 10px; padding: 16px 20px;
+      }
+
+      /* Cardinal micro-label for S3 panels */
+      .s3-cardinal-micro {
+        margin-top: 12px;
+        padding: 8px 0 0 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        font-size: 10px;
+        font-style: italic;
+        letter-spacing: 0.02em;
+        text-align: left;
+        line-height: 1.5;
+      }
+
+      /* ═══ STORY 4 STYLES ═══ */
+      .s4-badge-row {
+        display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap;
+      }
+      .s4-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 14px; border-radius: 16px;
+        font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+        white-space: nowrap;
+      }
+      .s4-connector {
+        width: 28px; height: 2px; flex-shrink: 0;
+      }
+      .s4-pill-pulse {
+        animation: s3PillPulse 2s ease-in-out infinite;
+      }
+
+      /* ATO Posture Dashboard */
+      .s4-dashboard {
+        border: 1px solid #22c55e;
+        background: rgba(34,197,94,0.04);
+        border-radius: 12px;
+        padding: 24px 28px;
+        opacity: 0; transform: translateY(24px);
+        pointer-events: none;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+      }
+      .s4-dashboard.revealed { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .s4-dashboard-header {
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      }
+      .s4-dash-badge {
+        font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase; color: #22c55e;
+      }
+      .s4-dash-live {
+        font-size: 10px; font-weight: 600; padding: 4px 12px;
+        border-radius: 10px; background: rgba(34,197,94,0.15); color: #22c55e;
+      }
+      .s4-dash-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px;
+      }
+      @media (max-width: 767px) { .s4-dash-grid { grid-template-columns: 1fr; } }
+      .s4-status-pill {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 16px 24px; border-radius: 10px;
+        border: 1px solid #22c55e;
+        background: rgba(34,197,94,0.08);
+        font-size: 20px; font-weight: 700; color: #22c55e;
+        box-shadow: 0 0 20px rgba(34,197,94,0.15);
+      }
+      .s4-metric-row {
+        display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 16px;
+      }
+      @media (max-width: 500px) { .s4-metric-row { grid-template-columns: 1fr 1fr; } }
+      .s4-metric-box {
+        background: #0a0f1e; border-radius: 8px; padding: 12px; text-align: center;
+      }
+      .s4-metric-val { font-size: 24px; font-weight: 700; }
+      .s4-metric-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+      .s4-chain-row {
+        display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      }
+      .s4-chain-dot {
+        width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      }
+      .s4-chain-text { font-size: 12px; color: #94a3b8; }
+      .s4-chain-text span { color: #cbd5e1; font-weight: 600; }
+
+      /* S4 Feedback Loop Visual */
+      .s4-feedback-loop {
+        margin-top: 14px;
+        background: #0a0f1e;
+        border-radius: 8px;
+        padding: 12px 16px;
+      }
+      .s4-loop-dots {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        justify-content: center;
+        flex-wrap: nowrap;
+      }
+      .s4-loop-dot {
+        width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+      }
+      .s4-loop-line {
+        flex: 1; height: 2px; min-width: 10px;
+        background: rgba(255,255,255,0.12);
+      }
+      .s4-loop-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 2px;
+        padding: 0 2px;
+      }
+      .s4-loop-label-item {
+        font-size: 8px;
+        color: #64748b;
+        text-align: center;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+      }
+      .s4-feedback-arrow {
+        margin-top: 8px;
+        border: 1.5px dashed #eab308;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        height: 24px;
+        position: relative;
+      }
+      .s4-feedback-arrow::before {
+        content: '◂';
+        position: absolute;
+        left: -6px;
+        top: -9px;
+        color: #eab308;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .s4-feedback-loop-text {
+        text-align: center;
+        margin-top: 8px;
+        font-size: 10px;
+        color: #eab308;
+        font-style: italic;
+        letter-spacing: 0.5px;
+      }
+
+      /* ═══ STORY 4 NOTICE BAR ═══ */
+      .s4-notice-bar {
+        background: rgba(217,119,6,0.12);
+        border: 1px solid rgba(217,119,6,0.35);
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 24px;
+        font-size: 12px;
+        color: #d97706;
+        line-height: 1.5;
+        text-align: center;
+      }
+
+      /* ═══ STORY 5 STYLES ═══ */
+      .s5-progress-bar {
+        display: flex; align-items: center; justify-content: center;
+        gap: 0; margin-bottom: 24px; flex-wrap: wrap;
+      }
+      .s5-pip {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 700;
+        border: 2px solid #475569;
+        color: #475569;
+        background: transparent;
+        transition: all 0.4s ease;
+        flex-shrink: 0;
+      }
+      .s5-pip.active {
+        border-color: #f5a623;
+        color: #f5a623;
+        background: rgba(245,166,35,0.15);
+        box-shadow: 0 0 12px rgba(245,166,35,0.3);
+      }
+      .s5-pip.completed {
+        border-color: #22c55e;
+        color: #0a0f1e;
+        background: #22c55e;
+      }
+      .s5-pip-line {
+        width: 20px; height: 2px;
+        background: #475569;
+        flex-shrink: 0;
+        transition: background 0.4s;
+      }
+      .s5-pip-line.completed {
+        background: #22c55e;
+      }
+      .s5-stage-card {
+        background: #141929;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        padding: 20px 24px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(24px);
+        pointer-events: none;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out, border-color 0.8s ease, box-shadow 0.8s ease;
+        margin-bottom: 16px;
+      }
+      .s5-stage-card.revealed {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .s5-stage-card.glowing { box-shadow: var(--glow-shadow); }
+      .s5-stage-card .left-accent {
+        position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+        border-radius: 12px 0 0 12px;
+      }
+      .s5-stage-progress {
+        position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+        border-radius: 0 0 12px 12px; overflow: hidden;
+        background: rgba(255,255,255,0.04);
+      }
+      .s5-stage-progress-fill {
+        height: 100%;
+        transition: width 0.5s ease;
+        border-radius: 0 0 12px 12px;
+      }
+      .s5-platform-card {
+        border: 2px solid #d97706;
+        background: #0d1225;
+        border-radius: 16px;
+        padding: 36px 32px;
+        text-align: center;
+        opacity: 0; transform: translateY(24px);
+        pointer-events: none;
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        margin-top: 24px;
+      }
+      .s5-platform-card.revealed {
+        opacity: 1; transform: translateY(0); pointer-events: auto;
+      }
+      .s5-feedback-loop-s5 {
+        margin-top: 14px;
+        background: #0a0f1e;
+        border-radius: 8px;
+        padding: 12px 16px;
+      }
+
+      /* Overview Section */
+      .overview-exec-card {
+        border: 1px solid #f5a623;
+        background: rgba(245,166,35,0.04);
+        border-radius: 16px;
+        padding: 36px;
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      .overview-how-card {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: #141929;
+        border-radius: 12px;
+        padding: 36px;
+        max-width: 820px;
+        margin: 24px auto 0;
+      }
+      .overview-block {
+        padding: 16px 20px;
+        margin-top: 16px;
+        position: relative;
+        border-radius: 0 8px 8px 0;
+      }
+      .overview-block::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px;
+        border-radius: 4px 0 0 4px;
+      }
+      .overview-block.cyan::before { background: #06b6d4; }
+      .overview-block.violet::before { background: #8b5cf6; }
+      .overview-block.gold::before { background: #f5a623; }
+
+      /* Responsive */
+      @media (max-width: 767px) {
+        .app-header { padding: 0 14px; }
+        .header-subtitle { display: none; }
+        .header-partner { font-size: 10px; }
+        .header-title { font-size: 15px; }
+        .content-area { padding: 20px 16px; padding-bottom: 60px; }
+        .cta-title { font-size: 22px; }
+        .cta-subtitle { font-size: 14px; }
+        .cta-button { padding: 14px 32px; font-size: 15px; }
+        .stage-card { padding: 16px 18px; }
+        .integration-row { flex-direction: column; gap: 0; }
+        .component-box { min-width: 100%; }
+        .flow-arrow { width: 6px; min-width: 6px; height: 40px; }
+        .flow-arrow .track { width: 2px; height: 100%; left: 50%; top: 0; bottom: 0; right: auto; transform: translateX(-50%); }
+        .flow-dot {
+          animation-name: flowDotV !important;
+          left: 50% !important; transform: translateX(-50%) !important;
+        }
+        .cardinal-card { padding: 20px 18px; }
+        .cardinal-text { font-size: 18px; }
+        .modal-card { padding: 20px; }
+        .app-footer { padding: 12px 14px; flex-direction: column; align-items: flex-start; }
+        .tab-btn { font-size: 10px; padding: 0 2px; }
+        .tab-main-label { font-size: 10px; }
+        .tab-sub-label { font-size: 7px; }
+        .s5-pip { width: 22px; height: 22px; font-size: 9px; }
+        .s5-pip-line { width: 8px; }
+        .overview-exec-card { padding: 24px 18px; }
+        .overview-how-card { padding: 24px 18px; }
+      }
+      @keyframes flowDotV {
+        0% { top: -10px; opacity: 0; }
+        15% { opacity: 1; }
+        85% { opacity: 1; }
+        100% { top: calc(100% + 10px); opacity: 0; }
+      }
+    </style>
+</head>
+<body data-id="0">
+    <app-icon data-id="1" hidden data-icon="shield-check" data-palette="Dark"></app-icon>
+
+    <!-- ═══ HEADER ═══ -->
+    <header data-id="2" class="app-header" id="header-main-a1b2">
+        <div data-id="3" class="header-brand">
+            <span data-id="4" class="header-shield">◈</span>
+            <span data-id="5" class="header-title">SDF Governance Guard</span>
+        </div>
+        <span data-id="6" class="header-subtitle">From Signal to Governed Action</span>
+        <span data-id="7" class="header-partner">Discipline Consulting Group LLC × Dynatrace</span>
+    </header>
+
+    <!-- ═══ TABS ═══ -->
+    <nav data-id="8" class="tab-bar" id="tab-bar-c3d4">
+        <button data-id="9" class="tab-btn active" data-tab="overview" id="tab-overview-ov1">
+            <span data-id="10" class="tab-main-label">◎&ensp;Overview</span>
+        </button>
+        <button data-id="11" class="tab-btn" data-tab="story1" id="tab-story1-e5f6">
+            <span data-id="12" class="tab-main-label">▶&ensp;Story 1 — Watch It Happen</span>
+        </button>
+        <button data-id="13" class="tab-btn" data-tab="story2" id="tab-story2-g7h8">
+            <span data-id="14" class="tab-main-label">⬡&ensp;Story 2 — The Architecture</span>
+        </button>
+        <button data-id="15" class="tab-btn" data-tab="story3" id="tab-story3-z1a2">
+            <span data-id="16" class="tab-main-label">◉&ensp;Story 3 — You Drive It</span>
+        </button>
+        <button data-id="17" class="tab-btn" data-tab="story4" id="tab-story4-q1r2">
+            <span data-id="18" class="tab-main-label">⚙&ensp;Story 4 — Continuous ATO ★</span>
+            <span data-id="19" class="tab-sub-label" style="color:#d97706;">Dave · Devin · Jeff · Federal AO Briefings</span>
+        </button>
+        <button data-id="20" class="tab-btn" data-tab="story5" id="tab-story5-m1n2">
+            <span data-id="21" class="tab-main-label">◈&ensp;Story 5 — GG at Scale</span>
+            <span data-id="22" class="tab-sub-label" style="color:#d97706;">Governed Behavior Gate · Program Enforcement</span>
+        </button>
+    </nav>
+
+    <!-- ═══ CONTENT ═══ -->
+    <main data-id="23" class="content-area" id="content-area-i9j0">
+
+        <!-- ═══════ OVERVIEW ═══════ -->
+        <div data-id="24" id="overview-panel" class="story-panel">
+
+            <!-- SECTION A — EXECUTIVE SUMMARY -->
+            <div data-id="25" class="overview-exec-card">
+                <div data-id="26" style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f5a623;">EXECUTIVE SUMMARY</div>
+                <h1 data-id="27" style="font-size:28px;font-weight:700;color:#fff;margin-top:12px;">SDF Governance Guard — From Signal to Governed Action</h1>
+                <p data-id="28" style="font-size:13px;color:#94a3b8;margin-top:8px;">Discipline Consulting Group LLC × Dynatrace · Dynatrace MCP Challenge Submission</p>
+                <div data-id="29" style="height:1px;background:rgba(255,255,255,0.08);margin:20px 0;"></div>
+                <div data-id="30" style="font-size:15px;color:#cbd5e1;line-height:1.8;">
+                    <p data-id="31">Every AI agent that touches your infrastructure needs to know three things before it acts: what happened, how serious it is, and what it's allowed to do. Without answers to all three, agents guess. And when agents guess in production environments, they create the exact problems you deployed them to prevent.</p>
+                    <p data-id="32" style="margin-top:16px;">SDF Governance Guard solves this with a three-word classification system — Signal, Defect, Failure — that turns every observability event into a governed action. The classification is the boundary. It determines what an agent can see, what it can do, and what evidence it must leave behind.</p>
+                    <p data-id="33" style="margin-top:16px;">This application walks you through five stories that show how Governance Guard works — from a single event detection through enterprise-scale continuous authorization. Each story builds on the last. By the end, you'll understand not just what Governance Guard does, but why it works the way it does and what it means for your authorization posture.</p>
+                    <p data-id="34" style="margin-top:16px;">This is not a prototype. It is a platform standard — built on Dynatrace's Compliance Assistant, Davis AI, Model Context Protocol, and Grail — and submitted as a complete solution to the Dynatrace MCP Challenge.</p>
+                </div>
+                <div data-id="35" style="margin-top:24px;font-size:16px;font-weight:700;color:#f5a623;font-style:italic;text-align:center;">"The classification of the data determines the permission of the agent."</div>
+            </div>
+
+            <!-- SECTION B — PRODUCT EXPLANATION -->
+            <div data-id="36" class="overview-how-card">
+                <div data-id="37" style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;">HOW IT WORKS · A PLAIN-ENGLISH GUIDE</div>
+                <h2 data-id="38" style="font-size:22px;font-weight:700;color:#fff;margin-top:8px;">The Three Building Blocks</h2>
+
+                <div data-id="39" class="overview-block cyan" style="background:rgba(6,182,212,0.04);">
+                    <div data-id="40" style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#06b6d4;">SIGNAL · DEFECT · FAILURE — THE CLASSIFICATION SYSTEM</div>
+                    <p data-id="41" style="font-size:14px;color:#cbd5e1;line-height:1.7;margin-top:8px;">SDF stands for Signal, Defect, Failure. These are the only three states a compliance event can be in. A Signal means something changed — watch it. A Defect means something is degraded — investigate it. A Failure means something broke an authorization boundary — fix it immediately, with guardrails. This single classification is the only thing that determines what any agent is allowed to do next. That's the whole system.</p>
+                </div>
+
+                <div data-id="42" class="overview-block violet" style="background:rgba(139,92,246,0.04);">
+                    <div data-id="43" style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#8b5cf6;">GOVERNANCE GUARD — THE ENFORCEMENT LAYER</div>
+                    <p data-id="44" style="font-size:14px;color:#cbd5e1;line-height:1.7;margin-top:8px;">Governance Guard sits between the detection system and the agents. Nothing gets to an agent without passing through it. When an event arrives, Governance Guard reads its classification, looks up what the pre-approved policy says about that classification, and either authorizes the action, restricts it, or blocks it entirely. Every decision is logged immediately and permanently. There's no override, no workaround, and no configuration that lets an agent skip the gate.</p>
+                </div>
+
+                <div data-id="45" class="overview-block gold" style="background:rgba(245,166,35,0.04);">
+                    <div data-id="46" style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#f5a623;">THE FIVE STORIES — HOW TO USE THIS APP</div>
+                    <p data-id="47" style="font-size:14px;color:#cbd5e1;line-height:1.7;margin-top:8px;">Story 1 shows the complete pipeline in 30 seconds — watch one event move through all six stages. Story 2 shows the four components and how they hand off to each other. Story 3 puts you in control — choose your framework, set the risk, and run it yourself. Story 4 shows what continuous authorization looks like for a federal system under NIST RMF. Story 5 shows Governance Guard operating at program scale — across every system, every agent, and every authorization boundary simultaneously. Start with Story 1. Take your time with Story 3. Story 5 is the complete picture.</p>
+                </div>
+
+                <div data-id="48" style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+                    <button data-id="49" class="cta-button" id="overview-go-story1" style="margin-top:0;">▶&ensp;Start with Story 1</button>
+                    <button data-id="50" class="run-again-btn" id="overview-go-story5" style="margin-top:0;">Jump to Story 5 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ STORY 1 ═══════ -->
+        <div data-id="51" id="story1-panel-k1l2" class="story-panel" style="display:none;">
+
+            <!-- Initial CTA -->
+            <div data-id="52" class="cta-container" id="cta-container-m3n4">
+                <div data-id="53" class="live-badge"><span data-id="54" class="pulse-dot"></span> LIVE SIMULATION</div>
+                <h1 data-id="55" class="cta-title">Something just happened on your production cluster. Here's what Governance Guard does about it.</h1>
+                <p data-id="56" class="cta-subtitle">Watch one real event move through the complete six-stage pipeline — from detection to audit record — in about 30 seconds.</p>
+                <button data-id="57" class="cta-button" id="run-sim-btn-o5p6">▶&ensp;RUN SIMULATION</button>
+                <p data-id="58" class="cta-hint">6 stages · ~30 seconds · end-to-end governed flow</p>
+            </div>
+
+            <!-- Stages -->
+            <div data-id="59" class="stages-container" id="stages-container-q7r8">
+                <div data-id="60" style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                    <button data-id="61" class="reset-btn" id="reset-btn-s9t0">↺ Reset</button>
+                </div>
+
+                <!-- Stage 1 — DETECT -->
+                <div data-id="62" class="stage-card" id="stage1-card-u1v2" style="--glow-shadow: 0 0 24px rgba(6,182,212,0.2), inset 0 0 24px rgba(6,182,212,0.04);">
+                    <div data-id="63" class="left-accent" style="background:#06b6d4;"></div>
+                    <div data-id="64" class="stage-header">
+                        <div data-id="65" class="stage-num" style="background:#06b6d4;">1</div>
+                        <span data-id="66" class="stage-badge" style="color:#06b6d4;">STAGE 1 &ensp;·&ensp; DETECT</span>
+                    </div>
+                    <div data-id="67" class="stage-title">The System Spots Something</div>
+                    <div data-id="68" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="69" class="section-text">Dynatrace's Compliance Assistant picked up a high-risk deployment problem on your production cluster. It didn't just flag an alarm — it captured the timestamp, the affected system, and the risk level. The event is real and it's in the pipeline.</p>
+                    <div data-id="70" class="section-label" style="color:#06b6d4;">SDF DECISION</div>
+                    <p data-id="71" class="decision-text">The event is logged. Classification is next — nothing acts until it's classified.</p>
+                    <div data-id="72" class="data-strip">Risk Level: HIGH &nbsp;·&nbsp; Entity: hive-prod-cluster-07 &nbsp;·&nbsp; Source: Davis AI &nbsp;·&nbsp; Raw Event: unclassified</div>
+                </div>
+
+                <!-- Stage 2 — CLASSIFY -->
+                <div data-id="73" class="stage-card" id="stage2-card-w3x4" style="--glow-shadow: 0 0 24px rgba(245,158,11,0.2), inset 0 0 24px rgba(245,158,11,0.04);">
+                    <div data-id="74" class="left-accent" style="background:#f59e0b;"></div>
+                    <div data-id="75" class="stage-header">
+                        <div data-id="76" class="stage-num" style="background:#f59e0b;">2</div>
+                        <span data-id="77" class="stage-badge" style="color:#f59e0b;">STAGE 2 &ensp;·&ensp; CLASSIFY</span>
+                        <span data-id="78" class="sdf-pill" style="background:#f59e0b;color:#0a0f1e;">THE ARBITER</span>
+                    </div>
+                    <div data-id="79" class="stage-title">One Word Changes Everything</div>
+                    <div data-id="80" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="81" class="section-text">The classification engine looks at the event and asks one question: how serious is this, really? High risk plus a confirmed root cause means one answer: FAILURE. That single word now controls everything that happens next — what the agent can do, what gets logged, and who gets notified.</p>
+                    <div data-id="82" class="section-label" style="color:#f59e0b;">SDF DECISION</div>
+                    <p data-id="83" class="decision-text">Classification: FAILURE. The agent is authorized to remediate — but only within pre-approved boundaries. No freelancing.</p>
+                    <div data-id="84" class="data-strip">SDF Tier: FAILURE &nbsp;·&nbsp; Permission: REMEDIATE &nbsp;·&nbsp; Confidence: HIGH &nbsp;·&nbsp; Threshold: Confirmed Root Cause</div>
+                </div>
+
+                <!-- Stage 3 — CONTEXTUALIZE -->
+                <div data-id="85" class="stage-card" id="stage3-card-y5z6" style="--glow-shadow: 0 0 24px rgba(234,179,8,0.2), inset 0 0 24px rgba(234,179,8,0.04);">
+                    <div data-id="86" class="left-accent" style="background:#eab308;"></div>
+                    <div data-id="87" class="stage-header">
+                        <div data-id="88" class="stage-num" style="background:#eab308;">3</div>
+                        <span data-id="89" class="stage-badge" style="color:#eab308;">STAGE 3 &ensp;·&ensp; CONTEXTUALIZE</span>
+                    </div>
+                    <div data-id="90" class="stage-title">The Event Gets Packaged for Governance</div>
+                    <div data-id="91" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="92" class="section-text">The Model Context Protocol takes the classified event and wraps it into a clean, structured package. It adds the policy references, the lineage ID, and the classification tier. This package — not the raw alert — is what Governance Guard actually reads.</p>
+                    <div data-id="93" class="section-label" style="color:#eab308;">SDF DECISION</div>
+                    <p data-id="94" class="decision-text">Package built. Classification embedded. Ready for enforcement.</p>
+                    <div data-id="95" class="data-strip">sdf_tier: FAILURE &nbsp;·&nbsp; policy_refs: OMB-M-25-21, NIST-IR-8011 &nbsp;·&nbsp; lineage_id: ca-event-0607-001</div>
+                </div>
+
+                <!-- Stage 4 — ENFORCE -->
+                <div data-id="96" class="stage-card" id="stage4-card-a7b8" style="--glow-shadow: 0 0 24px rgba(139,92,246,0.2), inset 0 0 24px rgba(139,92,246,0.04);">
+                    <div data-id="97" class="left-accent" style="background:#8b5cf6;"></div>
+                    <div data-id="98" class="stage-header">
+                        <div data-id="99" class="stage-num" style="background:#8b5cf6; color:#fff;">4</div>
+                        <span data-id="100" class="stage-badge" style="color:#8b5cf6;">STAGE 4 &ensp;·&ensp; ENFORCE</span>
+                        <span data-id="101" class="sdf-pill" style="background:#8b5cf6;color:#fff;">GG ACTIVE</span>
+                    </div>
+                    <div data-id="102" class="stage-title">The Gate Opens — But Only So Far</div>
+                    <div data-id="103" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="104" class="section-text">Governance Guard reads the package and finds FAILURE. That means one thing: remediation is authorized — but only through the pre-approved playbook. Anything outside that playbook is blocked. Not discouraged. Blocked. This is the enforcement layer, not a suggestion engine.</p>
+                    <div data-id="105" class="section-label" style="color:#8b5cf6;">SDF DECISION</div>
+                    <p data-id="106" class="decision-text">Approved playbook: authorized. Anything else: blocked. Decision recorded permanently.</p>
+                    <div data-id="107" class="data-strip">Decision: REMEDIATE &nbsp;·&nbsp; Playbook Required: YES &nbsp;·&nbsp; Novel Actions: BLOCKED &nbsp;·&nbsp; Record: Immutable</div>
+                </div>
+
+                <!-- Stage 5 — ROUTE -->
+                <div data-id="108" class="stage-card" id="stage5-card-c9d0" style="--glow-shadow: 0 0 24px rgba(14,165,233,0.2), inset 0 0 24px rgba(14,165,233,0.04);">
+                    <div data-id="109" class="left-accent" style="background:#0ea5e9;"></div>
+                    <div data-id="110" class="stage-header">
+                        <div data-id="111" class="stage-num" style="background:#0ea5e9;">5</div>
+                        <span data-id="112" class="stage-badge" style="color:#0ea5e9;">STAGE 5 &ensp;·&ensp; ROUTE</span>
+                    </div>
+                    <div data-id="113" class="stage-title">The Right Action Reaches the Right Destination</div>
+                    <div data-id="114" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="115" class="section-text">The governed instruction — not the raw alert — goes to the on-call engineer, the remediation playbook, and the audit log. The agent never sees the original event. It only sees what Governance Guard authorized. That separation is intentional and non-negotiable.</p>
+                    <div data-id="116" class="section-label" style="color:#0ea5e9;">SDF DECISION</div>
+                    <p data-id="117" class="decision-text">Engineer notified. Playbook triggered. Audit record opened. All three happen simultaneously.</p>
+                    <div data-id="118" class="data-strip">SRE: Notified &nbsp;·&nbsp; Playbook: ansible-rollback-v2 &nbsp;·&nbsp; Grail Record: Created &nbsp;·&nbsp; Raw Signal Exposed to Agent: NEVER</div>
+                </div>
+
+                <!-- Stage 6 — AUDIT -->
+                <div data-id="119" class="stage-card" id="stage6-card-e1f2" style="--glow-shadow: 0 0 24px rgba(34,197,94,0.2), inset 0 0 24px rgba(34,197,94,0.04);">
+                    <div data-id="120" class="left-accent" style="background:#22c55e;"></div>
+                    <div data-id="121" class="stage-header">
+                        <div data-id="122" class="stage-num" style="background:#22c55e;">6</div>
+                        <span data-id="123" class="stage-badge" style="color:#22c55e;">STAGE 6 &ensp;·&ensp; AUDIT &ensp;·&ensp; CHAIN COMPLETE ✓</span>
+                    </div>
+                    <div data-id="124" class="stage-title">Everything That Happened Is Permanently on Record</div>
+                    <div data-id="125" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                    <p data-id="126" class="section-text">Every step — from the first detection to the final fix — is recorded in Grail under one lineage ID. This is your compliance evidence record. It meets FedRAMP ConMon requirements, NIST IR 8011 standards, and OMB M-25-21 obligations. It was generated automatically while the pipeline ran. You didn't have to build it after the fact.</p>
+                    <div data-id="127" class="section-label" style="color:#22c55e;">SDF DECISION</div>
+                    <p data-id="128" class="decision-text">Six-stage chain complete. One lineage ID. Permanent, queryable, immutable.</p>
+                    <div data-id="129" class="data-strip">Lineage ID: ca-event-0607-001 &nbsp;·&nbsp; Steps: 6 &nbsp;·&nbsp; Standard: NIST-IR-8011 &nbsp;·&nbsp; Storage: Grail &nbsp;·&nbsp; Status: IMMUTABLE</div>
+                </div>
+
+                <!-- Cardinal Rule -->
+                <div data-id="130" class="cardinal-card" id="cardinal-card-g3h4">
+                    <div data-id="131" class="cardinal-label">THE RULE THAT GOVERNS EVERYTHING</div>
+                    <div data-id="132" class="cardinal-text">The classification of the data determines the permission of the agent.</div>
+                    <div data-id="133" class="cardinal-tiers">Signal → Watch only, don't touch &ensp;·&ensp; Defect → Investigate, don't fix &ensp;·&ensp; Failure → Remediate, with guardrails</div>
+                    <button data-id="134" class="run-again-btn" id="run-again-btn-i5j6">↺ Run Again</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ STORY 2 ═══════ -->
+        <div data-id="135" id="story2-panel-k7l8" class="story-panel" style="display:none;">
+
+            <!-- Section A — Integration Surface -->
+            <section data-id="136" class="arch-section" id="section-integration-m9n0">
+                <h2 data-id="137" class="arch-title">How the Four Components Work Together</h2>
+                <p data-id="138" class="arch-subtitle">Each component has exactly one job. None of them overlap. That separation is what makes the system trustworthy.</p>
+
+                <div data-id="139" class="integration-row" id="integration-row-o1p2">
+                    <div data-id="140" class="component-box" id="comp-ca-q3r4">
+                        <span data-id="141" class="comp-icon" style="color:#06b6d4;">👁</span>
+                        <div data-id="142" class="comp-name">Compliance Assistant</div>
+                        <div data-id="143" class="comp-subtitle" style="color:#06b6d4;">DETECTION LAYER</div>
+                        <p data-id="144" class="comp-desc">Watches everything. Detects problems. Sends a structured event when something needs attention. Never acts on what it finds.</p>
+                    </div>
+                    <div data-id="145" class="flow-arrow">
+                        <div data-id="146" class="track"></div>
+                        <div data-id="147" class="flow-dot"></div>
+                        <div data-id="148" class="flow-dot"></div>
+                        <div data-id="149" class="flow-dot"></div>
+                    </div>
+                    <div data-id="150" class="component-box" id="comp-mcp-s5t6">
+                        <span data-id="151" class="comp-icon" style="color:#f5a623;">⬡</span>
+                        <div data-id="152" class="comp-name">Model Context Protocol</div>
+                        <div data-id="153" class="comp-subtitle" style="color:#f5a623;">NORMALIZATION LAYER</div>
+                        <p data-id="154" class="comp-desc">Takes the raw detection event and turns it into a clean, structured package — with the classification, policy references, and a lineage ID that tracks the event through every step.</p>
+                        <button data-id="155" class="payload-link" id="payload-link-u7v8">View Payload ↗</button>
+                    </div>
+                    <div data-id="156" class="flow-arrow">
+                        <div data-id="157" class="track"></div>
+                        <div data-id="158" class="flow-dot"></div>
+                        <div data-id="159" class="flow-dot"></div>
+                        <div data-id="160" class="flow-dot"></div>
+                    </div>
+                    <div data-id="161" class="component-box" id="comp-gg-w9x0">
+                        <span data-id="162" class="comp-icon" style="color:#8b5cf6;">◈</span>
+                        <div data-id="163" class="comp-name">Governance Guard</div>
+                        <div data-id="164" class="comp-subtitle" style="color:#8b5cf6;">ENFORCEMENT LAYER</div>
+                        <p data-id="165" class="comp-desc">Reads the package, applies the classification policy, and makes the call: authorized, restricted, or blocked. Every decision is logged the moment it's made.</p>
+                    </div>
+                    <div data-id="166" class="flow-arrow">
+                        <div data-id="167" class="track"></div>
+                        <div data-id="168" class="flow-dot"></div>
+                        <div data-id="169" class="flow-dot"></div>
+                        <div data-id="170" class="flow-dot"></div>
+                    </div>
+                    <div data-id="171" class="component-box" id="comp-agents-a1b2">
+                        <span data-id="172" class="comp-icon" style="color:#0ea5e9;">⚡</span>
+                        <div data-id="173" class="comp-name">Governed Agents</div>
+                        <div data-id="174" class="comp-subtitle" style="color:#0ea5e9;">ACTION LAYER</div>
+                        <p data-id="175" class="comp-desc">Only receives what Governance Guard approves. Never sees the raw event. Cannot expand its own permissions under any circumstance.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section B — Handoff Explorer -->
+            <section data-id="176" class="arch-section" id="section-handoff-c3d4" style="margin-top:48px;">
+                <h2 data-id="177" class="arch-title">The Three Boundaries That Matter</h2>
+                <p data-id="178" class="arch-subtitle">Select a boundary to see exactly what passes through it — and what doesn't.</p>
+
+                <div data-id="179" class="handoff-btns" id="handoff-btns-e5f6">
+                    <button data-id="180" class="handoff-btn" data-handoff="ca-mcp" id="hbtn-camcp-g7h8">CA → MCP</button>
+                    <button data-id="181" class="handoff-btn active" data-handoff="mcp-gg" id="hbtn-mcpgg-i9j0">MCP → GG</button>
+                    <button data-id="182" class="handoff-btn" data-handoff="gg-agents" id="hbtn-ggagents-k1l2">GG → Agents</button>
+                </div>
+
+                <div data-id="183" class="handoff-panel" data-panel="ca-mcp" id="panel-camcp-m3n4">
+                    <div data-id="184" class="handoff-header">What the Detection Layer Passes to the Normalization Layer</div>
+                    <div data-id="185" class="handoff-body">
+                        <p data-id="186">Compliance Assistant produces one thing: a raw detection event. Risk level, system ID, timestamp. That's it. It doesn't classify the event. It doesn't decide what to do about it. It detects and hands off.</p>
+                        <p data-id="187" style="margin-top:12px;">MCP takes that raw event and turns it into the structured payload that Governance Guard can actually use. It adds the classification tier, the policy references, and the lineage ID. From this point forward, every system in the pipeline works from this package — not the original alert.</p>
+                    </div>
+                    <div data-id="188" class="key-principle" style="border-left:3px solid #06b6d4;">
+                        <div data-id="189" class="kp-label" style="color:#06b6d4;">KEY PRINCIPLE</div>
+                        <p data-id="190" class="kp-text">Detection and normalization are separate jobs on purpose. The Compliance Assistant doesn't need to know how MCP works. MCP doesn't need to know how detection works. Separation is how you keep the system auditable.</p>
+                    </div>
+                </div>
+
+                <div data-id="191" class="handoff-panel active" data-panel="mcp-gg" id="panel-mcpgg-o5p6">
+                    <div data-id="192" class="primary-badge">PRIMARY INTEGRATION SURFACE</div>
+                    <div data-id="193" class="handoff-header">What the Normalization Layer Passes to the Enforcement Layer</div>
+                    <div data-id="194" class="handoff-body">
+                        <p data-id="195">Governance Guard never reads the raw detection event. Ever. It only reads the normalized package that MCP built. This is the most important boundary in the system.</p>
+                        <p data-id="196" style="margin-top:12px;">When Governance Guard receives the package, it reads one field first: the classification tier. That field determines the entire enforcement policy. FAILURE means remediate with guardrails. DEFECT means investigate only. SIGNAL means observe only. The other seven fields are supporting evidence — important for the audit record, but the classification tier is the decision.</p>
+                    </div>
+                    <div data-id="197" class="key-principle" style="border-left:3px solid #8b5cf6;">
+                        <div data-id="198" class="kp-label" style="color:#8b5cf6;">KEY PRINCIPLE</div>
+                        <p data-id="199" class="kp-text">Nothing unclassified ever reaches Governance Guard. That's not a policy — it's an architectural guarantee. There's no path for raw data to get through.</p>
+                    </div>
+                </div>
+
+                <div data-id="200" class="handoff-panel" data-panel="gg-agents" id="panel-ggagents-q7r8">
+                    <div data-id="201" class="handoff-header">What the Enforcement Layer Passes to the Action Layer</div>
+                    <div data-id="202" class="handoff-body">
+                        <p data-id="203">Agents don't receive raw events. They don't receive the MCP package either. They receive exactly one thing: the governed result from Governance Guard. That result tells them what they're authorized to do — and nothing else.</p>
+                        <p data-id="204" style="margin-top:12px;">A FAILURE classification authorizes the remediation playbook — that playbook, nothing else. A DEFECT authorizes investigation only. A SIGNAL authorizes observation only. An agent has no way to expand its own permissions. That limit is built into the architecture, not configured in a settings file somewhere.</p>
+                    </div>
+                    <div data-id="205" class="key-principle" style="border-left:3px solid #0ea5e9;">
+                        <div data-id="206" class="kp-label" style="color:#0ea5e9;">KEY PRINCIPLE</div>
+                        <p data-id="207" class="kp-text">The permission boundary is architectural. No configuration change, no prompt engineering, and no runtime override can move it.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ═══════ STORY 3 ═══════ -->
+        <div data-id="208" id="story3-panel-b3c4" class="story-panel" style="display:none;">
+
+            <!-- INTRO SCREEN -->
+            <div data-id="209" class="cta-container" id="s3-intro-d5e6">
+                <!-- Badge row -->
+                <div data-id="210" class="s3-badge-row" id="s3-badges-f7g8">
+                    <span data-id="211" class="s3-pill" style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">✓ Story 1 — You Watched</span>
+                    <div data-id="212" class="s3-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="213" class="s3-pill" style="background:rgba(6,182,212,0.12);color:#06b6d4;border:1px solid rgba(6,182,212,0.3);">✓ Story 2 — You Explored</span>
+                    <div data-id="214" class="s3-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="215" class="s3-pill s3-pill-pulse" style="background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.4);">◉ Story 3 — You Drive It</span>
+                </div>
+
+                <h1 data-id="216" style="font-size:26px;font-weight:700;color:#fff;margin-top:28px;">Your turn. You control the signal.</h1>
+                <p data-id="217" style="font-size:15px;color:#94a3b8;margin-top:12px;max-width:560px;line-height:1.6;text-align:center;">Pick a regulatory framework. Set the risk level. Generate the event. Then watch what Governance Guard does about it — step by step, one decision at a time.</p>
+                <p data-id="218" style="margin-top:20px;font-size:14px;color:#f5a623;font-style:italic;text-align:center;">This same pattern runs for every framework, every risk level, and every agent in your environment. Every single time.</p>
+                <button data-id="219" class="cta-button" id="s3-start-btn-h9i0">▶&ensp;START SIMULATION</button>
+                <p data-id="220" class="cta-hint">4 panels · 7 clicks · complete governed flow</p>
+            </div>
+
+            <!-- SIMULATION CONTAINER (hidden until start) -->
+            <div data-id="221" id="s3-sim-container-j1k2" style="display:none;max-width:1100px;margin:0 auto;">
+
+                <!-- Reset -->
+                <div data-id="222" style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                    <button data-id="223" class="reset-btn visible" id="s3-reset-btn-l3m4">↺ Reset</button>
+                </div>
+
+                <!-- Narrator bar -->
+                <div data-id="224" class="narrator-bar" id="s3-narrator-n5o6">
+                    <button data-id="225" class="narrator-toggle" id="s3-narrator-toggle-p7q8">
+                        <span data-id="226" class="narrator-label">📋 WEBINAR NARRATOR SCRIPT</span>
+                        <span data-id="227" class="narrator-arrow">▼</span>
+                    </button>
+                    <div data-id="228" class="narrator-content" id="s3-narrator-content-r9s0">
+                        <div data-id="229" class="narrator-step active" data-nstep="1" id="ns1-t1u2"><span data-id="230" class="step-num">1 ·</span> "Pick your regulatory framework and set the risk level. This is the signal that enters the system — the same kind of event your Dynatrace environment generates automatically."</div>
+                        <div data-id="231" class="narrator-step" data-nstep="2" id="ns2-v3w4"><span data-id="232" class="step-num">2 ·</span> "MCP takes the raw event and builds the structured package. See the lineage ID? That same ID follows this event all the way through to the audit record."</div>
+                        <div data-id="233" class="narrator-step" data-nstep="3" id="ns3-x5y6"><span data-id="234" class="step-num">3 ·</span> "Governance Guard checks what's allowed under this framework and risk level. Try flipping the bypass toggle — see what the system looks like without governance. That gap is what SDF closes."</div>
+                        <div data-id="235" class="narrator-step" data-nstep="4" id="ns4-z7a8"><span data-id="236" class="step-num">4 ·</span> "The agent executes — but only within the boundaries Governance Guard just defined. No improvisation. No self-escalation. The classification is the permission."</div>
+                        <div data-id="237" class="narrator-step" data-nstep="5" id="ns5-b9c0"><span data-id="238" class="step-num">5 ·</span> "The audit record is the same lineage chain from Story 1 — queryable, permanent, and already in the format your compliance team needs. You didn't have to build it."</div>
+                    </div>
+                </div>
+
+                <!-- 4-Panel Pipeline -->
+                <div data-id="239" class="s3-pipeline" id="s3-pipeline-d1e2">
+
+                    <!-- ═══ PANEL 1 — COMPLIANCE ASSISTANT ═══ -->
+                    <div data-id="240" class="s3-panel" id="s3-p1-f3g4" style="--panel-color:#06b6d4;--panel-glow:0 0 20px rgba(6,182,212,0.25);">
+                        <div data-id="241" class="s3-panel-header">
+                            <div data-id="242" class="s3-panel-num" style="background:#06b6d4;">1</div>
+                            <span data-id="243" class="s3-panel-badge" style="color:#06b6d4;">COMPLIANCE ASSISTANT</span>
+                            <span data-id="244" class="s3-panel-layer">DETECTION LAYER</span>
+                        </div>
+
+                        <div data-id="245" class="s3-field-label">REGULATORY FRAMEWORK</div>
+                        <select data-id="246" class="s3-select" id="s3-framework-h5i6">
+                            <option data-id="247" value="DORA">DORA</option>
+                            <option data-id="248" value="NIST 800-53">NIST 800-53</option>
+                            <option data-id="249" value="Zero Trust">Zero Trust</option>
+                            <option data-id="250" value="FedRAMP High">FedRAMP High</option>
+                        </select>
+
+                        <div data-id="251" class="s3-field-label" style="margin-top:12px;">EVENT TYPE</div>
+                        <select data-id="252" class="s3-select" id="s3-event-j7k8">
+                            <option data-id="253" value="Deployment change failure">Deployment change failure</option>
+                            <option data-id="254" value="Pipeline latency spike">Pipeline latency spike</option>
+                            <option data-id="255" value="Forecast anomaly">Forecast anomaly</option>
+                            <option data-id="256" value="Access control violation">Access control violation</option>
+                        </select>
+
+                        <div data-id="257" class="s3-field-label" style="margin-top:12px;">RISK LEVEL</div>
+                        <div data-id="258" class="s3-slider-wrap">
+                            <input data-id="259" type="range" min="0" max="100" value="85" class="s3-slider" id="s3-risk-slider-l9m0">
+                            <div data-id="260" class="s3-slider-labels">
+                                <span data-id="261" style="color:#22c55e;">LOW</span>
+                                <span data-id="262" style="color:#f59e0b;">MEDIUM</span>
+                                <span data-id="263" style="color:#ef4444;">HIGH</span>
+                            </div>
+                            <div data-id="264" style="text-align:center;margin-top:2px;">
+                                <span data-id="265" class="s3-risk-pill" id="s3-risk-pill-n1o2" style="background:rgba(239,68,68,0.15);color:#ef4444;">HIGH</span>
+                            </div>
+                        </div>
+
+                        <div data-id="266" class="s3-signal-preview" id="s3-signal-preview-p3q4">
+                            { framework: "DORA", event: "Deployment change failure", risk: "HIGH", sdf_tier: "<span data-id="267" id="s3-prev-tier-r5s6" style="color:#ef4444;">FAILURE</span>" }
+                        </div>
+
+                        <button data-id="268" class="s3-action-btn" id="s3-gen-btn-t7u8" style="background:#06b6d4;color:#0a0f1e;">⚡&ensp;Generate Compliance Signal</button>
+
+                        <!-- Cardinal micro-label -->
+                        <div data-id="269" class="s3-cardinal-micro" style="color:rgba(6,182,212,0.7);">Step 1: The event enters. Nothing acts on it yet.</div>
+                    </div>
+
+                    <!-- Arrow 1 -->
+                    <div data-id="270" class="s3-arrow">
+                        <div data-id="271" class="track">
+                            <div data-id="272" class="flow-dot"></div>
+                            <div data-id="273" class="flow-dot"></div>
+                            <div data-id="274" class="flow-dot"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ PANEL 2 — MCP CONTEXT ═══ -->
+                    <div data-id="275" class="s3-panel locked" id="s3-p2-v9w0" style="--panel-color:#f5a623;--panel-glow:0 0 20px rgba(245,166,35,0.25);">
+                        <div data-id="276" class="s3-panel-header">
+                            <div data-id="277" class="s3-panel-num" style="background:#f5a623;">2</div>
+                            <span data-id="278" class="s3-panel-badge" style="color:#f5a623;">MCP — MODEL CONTEXT PROTOCOL</span>
+                            <span data-id="279" class="s3-panel-layer">NORMALIZATION LAYER</span>
+                        </div>
+
+                        <div data-id="280" class="s3-json-box" id="s3-json-box-x1y2"></div>
+
+                        <div data-id="281" style="margin-top:12px;">
+                            <div data-id="282" class="s3-toggle-row">
+                                <div data-id="283">
+                                    <div data-id="284" class="s3-toggle-label">✅ Include policy metadata</div>
+                                    <div data-id="285" class="s3-toggle-hint">Toggling off grays out policy_refs field</div>
+                                </div>
+                                <button data-id="286" class="s3-toggle on" id="s3-tog-policy-z3a4" data-field="policy_refs"></button>
+                            </div>
+                            <div data-id="287" class="s3-toggle-row">
+                                <div data-id="288">
+                                    <div data-id="289" class="s3-toggle-label">✅ Include system dependencies</div>
+                                    <div data-id="290" class="s3-toggle-hint">Toggling off grays out event_type field</div>
+                                </div>
+                                <button data-id="291" class="s3-toggle on" id="s3-tog-deps-b5c6" data-field="event_type"></button>
+                            </div>
+                            <div data-id="292" class="s3-toggle-row">
+                                <div data-id="293">
+                                    <div data-id="294" class="s3-toggle-label">✅ Include lineage identifiers</div>
+                                    <div data-id="295" class="s3-toggle-hint">Toggling off grays out lineage_id field</div>
+                                </div>
+                                <button data-id="296" class="s3-toggle on" id="s3-tog-lineage-d7e8" data-field="lineage_id"></button>
+                            </div>
+                        </div>
+
+                        <div data-id="297" id="s3-normalize-confirm-f9g0" style="display:none;margin-top:8px;font-size:12px;color:#22c55e;">✓ Context normalized</div>
+
+                        <button data-id="298" class="s3-action-btn" id="s3-normalize-btn-h1i2" style="background:#f5a623;color:#0a0f1e;">→&ensp;Normalize Context</button>
+
+                        <!-- Cardinal micro-label -->
+                        <div data-id="299" class="s3-cardinal-micro" style="color:rgba(245,166,35,0.7);">Step 2: The event gets classified. Signal, Defect, or Failure — one answer, no ambiguity.</div>
+                    </div>
+
+                    <!-- Arrow 2 -->
+                    <div data-id="300" class="s3-arrow">
+                        <div data-id="301" class="track">
+                            <div data-id="302" class="flow-dot"></div>
+                            <div data-id="303" class="flow-dot"></div>
+                            <div data-id="304" class="flow-dot"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ PANEL 3 — GOVERNANCE GUARD ═══ -->
+                    <div data-id="305" class="s3-panel locked" id="s3-p3-j3k4" style="--panel-color:#8b5cf6;--panel-glow:0 0 20px rgba(139,92,246,0.25);">
+                        <div data-id="306" class="s3-panel-header">
+                            <div data-id="307" class="s3-panel-num" style="background:#8b5cf6;color:#fff;">3</div>
+                            <span data-id="308" class="s3-panel-badge" style="color:#8b5cf6;">GOVERNANCE GUARD</span>
+                            <span data-id="309" class="s3-panel-layer">ENFORCEMENT LAYER</span>
+                        </div>
+
+                        <!-- Bypass toggle -->
+                        <div data-id="310" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(239,68,68,0.04);border-radius:8px;margin-bottom:10px;">
+                            <span data-id="311" style="font-size:11px;font-weight:700;color:#ef4444;letter-spacing:0.5px;">⚠ GOVERNANCE BYPASS</span>
+                            <button data-id="312" class="s3-toggle" id="s3-bypass-toggle-l5m6"></button>
+                        </div>
+                        <div data-id="313" class="s3-bypass-warning" id="s3-bypass-warn-n7o8">⚠ GOVERNANCE BYPASSED — No policy check. No lineage trail. No audit record. This is exactly what SDF was built to prevent.</div>
+                        <div data-id="314" class="s3-restore-msg" id="s3-restore-msg-p9q0">✅ Governance restored — every action is bounded, every decision is recorded.</div>
+
+                        <div data-id="315" class="s3-field-label" style="color:#8b5cf6;">POLICY EVALUATION</div>
+                        <div data-id="316" class="s3-signal-preview" id="s3-policy-output-r1s2" style="border-left-color:#8b5cf6;font-size:12px;">
+                            Automation allowed: YES · Human approval required: CONDITIONAL · Risk threshold exceeded: TRUE · SDF Tier: FAILURE
+                        </div>
+
+                        <div data-id="317" class="s3-field-label" style="color:#8b5cf6;margin-top:12px;">ALLOWED ACTIONS</div>
+                        <div data-id="318" id="s3-allowed-actions-t3u4" style="font-size:13px;line-height:1.8;color:#cbd5e1;"></div>
+
+                        <div data-id="319" class="s3-field-label" style="color:#8b5cf6;margin-top:12px;">CAUSAL CHAIN</div>
+                        <div data-id="320" class="s3-timeline" id="s3-timeline-v5w6">
+                            <div data-id="321" style="text-align:center;"><div data-id="322" class="s3-timeline-dot"></div><div data-id="323" class="s3-timeline-label">Deployment</div></div>
+                            <div data-id="324" class="s3-timeline-line"></div>
+                            <div data-id="325" style="text-align:center;"><div data-id="326" class="s3-timeline-dot"></div><div data-id="327" class="s3-timeline-label">Latency</div></div>
+                            <div data-id="328" class="s3-timeline-line"></div>
+                            <div data-id="329" style="text-align:center;"><div data-id="330" class="s3-timeline-dot"></div><div data-id="331" class="s3-timeline-label">Anomaly</div></div>
+                            <div data-id="332" class="s3-timeline-line"></div>
+                            <div data-id="333" style="text-align:center;"><div data-id="334" class="s3-timeline-dot"></div><div data-id="335" class="s3-timeline-label">Violation</div></div>
+                            <div data-id="336" class="s3-timeline-line"></div>
+                            <div data-id="337" style="text-align:center;"><div data-id="338" class="s3-timeline-dot pulse"></div><div data-id="339" class="s3-timeline-label">Decision</div></div>
+                        </div>
+
+                        <div data-id="340" id="s3-govern-confirm-x7y8" style="display:none;margin-top:8px;font-size:12px;color:#22c55e;">✓ Governance decision recorded</div>
+
+                        <button data-id="341" class="s3-action-btn" id="s3-govern-btn-z9a0" style="background:#8b5cf6;color:#fff;">⚖&ensp;Evaluate &amp; Govern</button>
+
+                        <!-- Cardinal micro-label -->
+                        <div data-id="342" class="s3-cardinal-micro" style="color:rgba(139,92,246,0.7);">Step 3: The classification becomes the permission. The boundary is set.</div>
+                    </div>
+
+                    <!-- Arrow 3 -->
+                    <div data-id="343" class="s3-arrow">
+                        <div data-id="344" class="track">
+                            <div data-id="345" class="flow-dot"></div>
+                            <div data-id="346" class="flow-dot"></div>
+                            <div data-id="347" class="flow-dot"></div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ PANEL 4 — AGENTIC ACTION ═══ -->
+                    <div data-id="348" class="s3-panel locked" id="s3-p4-b1c2" style="--panel-color:#22c55e;--panel-glow:0 0 20px rgba(34,197,94,0.25);">
+                        <div data-id="349" class="s3-panel-header">
+                            <div data-id="350" class="s3-panel-num" style="background:#22c55e;">4</div>
+                            <span data-id="351" class="s3-panel-badge" style="color:#22c55e;">AGENTIC ACTION</span>
+                            <span data-id="352" class="s3-panel-layer">EXECUTION LAYER — GOVERNED</span>
+                        </div>
+
+                        <div data-id="353" class="s3-field-label" style="color:#22c55e;">SELECT ACTIONS</div>
+                        <div data-id="354" id="s3-action-checks-d3e4"></div>
+
+                        <div data-id="355" class="s3-validation" id="s3-validation-f5g6">
+                            ✔ Actions validated against Governance Guard policy<br data-id="356">
+                            ✔ Lineage ID: ca-event-0607-001 confirmed<br data-id="357">
+                            ✔ Audit record prepared — Grail write pending
+                        </div>
+
+                        <button data-id="358" class="s3-action-btn" id="s3-execute-btn-h7i8" style="background:#22c55e;color:#0a0f1e;">🚀&ensp;Execute Governed Action</button>
+
+                        <!-- Cardinal micro-label -->
+                        <div data-id="359" class="s3-cardinal-micro" style="color:rgba(34,197,94,0.7);">Step 4: The agent acts — only within what the classification permits.</div>
+                    </div>
+                </div>
+
+                <!-- Audit Record (below pipeline) -->
+                <div data-id="360" class="s3-audit-record" id="s3-audit-record-j9k0">
+                    <div data-id="361" class="s3-audit-header">
+                        <span data-id="362" class="s3-audit-title">✅ GOVERNED ACTION EXECUTED</span>
+                        <span data-id="363" class="s3-audit-badge">Audit Record — Grail Write Confirmed</span>
+                    </div>
+                    <div data-id="364" class="s3-audit-grid">
+                        <div data-id="365" class="s3-audit-col">
+                            <h4 data-id="366" style="color:#22c55e;">EXECUTION SUMMARY</h4>
+                            <p data-id="367" id="s3-exec-summary-l1m2"></p>
+                        </div>
+                        <div data-id="368" class="s3-audit-col">
+                            <h4 data-id="369" style="color:#f5a623;">AUDIT CHAIN</h4>
+                            <p data-id="370" id="s3-audit-chain-n3o4"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Standard Card -->
+                <div data-id="371" class="s3-platform-card" id="s3-platform-card-p5q6">
+                    <div data-id="372" style="font-size:10px;font-weight:700;color:#f5a623;letter-spacing:2px;text-transform:uppercase;">THE VERDICT</div>
+                    <div data-id="373" style="font-size:20px;font-weight:700;color:#fff;margin-top:8px;">This same pattern runs across every framework, every risk level, every agent in your environment.</div>
+                    <div data-id="374" style="font-size:14px;color:#94a3b8;margin-top:10px;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.6;">The event classifies. The guard enforces. The action executes. The audit record writes itself. Every single time — with no manual assembly required.</div>
+                    <div data-id="375" style="height:1px;background:rgba(255,255,255,0.08);margin:20px 0;"></div>
+                    <div data-id="376" style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">THE CARDINAL RULE OF SDF</div>
+                    <div data-id="377" style="font-size:18px;font-weight:700;line-height:1.5;"><span data-id="378" style="color:#06b6d4;">The classification</span> <span data-id="379" style="color:#f5a623;">of the data</span> <span data-id="380" style="color:#8b5cf6;">determines the permission</span> <span data-id="381" style="color:#22c55e;">of the agent.</span></div>
+                    <div data-id="382" style="margin-top:16px;font-size:16px;font-weight:700;color:#f5a623;">That's not a community innovation. That's a platform standard.</div>
+                    <div data-id="383" style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                        <button data-id="384" class="run-again-btn" id="s3-run-again-r7s8">↺&ensp;Run Again</button>
+                        <button data-id="385" class="run-again-btn" id="s3-xfw-trigger-t9u0" style="border-color:#06b6d4;color:#06b6d4;">⚖&ensp;Try Cross-Framework Conflict →</button>
+                    </div>
+                </div>
+
+                <!-- Cross-Framework Conflict -->
+                <div data-id="386" class="s3-xfw-card" id="s3-xfw-card-v1w2">
+                    <button data-id="387" class="s3-xfw-header" id="s3-xfw-header-x3y4">
+                        <span data-id="388">⚖&ensp;What happens when two frameworks disagree? — DORA × NIST 800-53</span>
+                        <span data-id="389" class="s3-xfw-arrow">▼</span>
+                    </button>
+                    <div data-id="390" class="s3-xfw-body" id="s3-xfw-body-z5a6">
+                        <p data-id="391" style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:16px;">This happens all the time in federal environments: two frameworks apply to the same event, and they want different things. Here's how Governance Guard handles it.</p>
+
+                        <div data-id="392" class="s3-xfw-cols">
+                            <div data-id="393" class="s3-xfw-side" style="border-left:3px solid #06b6d4;">
+                                <div data-id="394" style="font-size:12px;font-weight:700;color:#06b6d4;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">DORA</div>
+                                <div data-id="395" style="font-size:15px;font-weight:700;color:#06b6d4;">✅ Act immediately</div>
+                                <p data-id="396" style="font-size:13px;color:#94a3b8;margin-top:8px;line-height:1.6;">DORA prioritizes speed of recovery. It says: if you can fix it automatically within your recovery time objective, do it.</p>
+                                <div data-id="397" style="margin-top:10px;font-size:12px;color:#64748b;font-family:'JetBrains Mono',monospace;">SDF Output: DEFECT → INVESTIGATE · Human notification: recommended</div>
+                            </div>
+                            <div data-id="398" class="s3-xfw-side" style="border-left:3px solid #8b5cf6;">
+                                <div data-id="399" style="font-size:12px;font-weight:700;color:#8b5cf6;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">NIST 800-53</div>
+                                <div data-id="400" style="font-size:15px;font-weight:700;color:#8b5cf6;">⚠️ Approval required first</div>
+                                <p data-id="401" style="font-size:13px;color:#94a3b8;margin-top:8px;line-height:1.6;">NIST 800-53 says: before you touch a high-impact system, get documented approval first.</p>
+                                <div data-id="402" style="margin-top:10px;font-size:12px;color:#64748b;font-family:'JetBrains Mono',monospace;">SDF Output: FAILURE → REMEDIATE · Human approval: REQUIRED</div>
+                            </div>
+                        </div>
+
+                        <div data-id="403" class="s3-xfw-resolution">
+                            <div data-id="404" style="font-size:11px;font-weight:700;color:#f5a623;letter-spacing:1.5px;text-transform:uppercase;">GOVERNANCE GUARD DECISION</div>
+                            <div data-id="405" style="font-size:16px;font-weight:700;color:#fff;margin-top:6px;">→ NIST 800-53 applied — Stricter policy wins</div>
+                            <p data-id="406" style="font-size:13px;color:#94a3b8;margin-top:6px;line-height:1.6;">When two frameworks disagree, Governance Guard always sides with the stricter one. It's not a setting you configure — it's how the system is built.</p>
+                            <p data-id="407" style="font-size:13px;color:#f5a623;font-style:italic;margin-top:8px;">That's what a platform standard does. It handles the hard cases without waiting for someone to tell it what to do.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- end sim container -->
+        </div><!-- end story3 -->
+
+        <!-- ═══════ STORY 4 — CONTINUOUS ATO ═══════ -->
+        <div data-id="408" id="story4-panel-s3t4" class="story-panel" style="display:none;">
+
+            <!-- NOTICE BAR -->
+            <div data-id="409" class="s4-notice-bar" id="s4-notice-bar-x1y2">
+                ★ This story is reserved for the Dave · Devin · Jeff meeting and AO/ISSO federal evaluator briefings. It is not part of the live 30-minute webinar. See Story 5 for the webinar capstone.
+            </div>
+
+            <!-- INTRO SCREEN -->
+            <div data-id="410" class="cta-container" id="s4-intro-u5v6">
+                <!-- Badge row -->
+                <div data-id="411" class="s4-badge-row">
+                    <span data-id="412" class="s4-pill" style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">✓ Story 1 — You Watched</span>
+                    <div data-id="413" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="414" class="s4-pill" style="background:rgba(6,182,212,0.12);color:#06b6d4;border:1px solid rgba(6,182,212,0.3);">✓ Story 2 — You Explored</span>
+                    <div data-id="415" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="416" class="s4-pill" style="background:rgba(139,92,246,0.12);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);">✓ Story 3 — You Drive It</span>
+                    <div data-id="417" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="418" class="s4-pill s4-pill-pulse" style="background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.4);">⚙ Story 4 — Continuous ATO</span>
+                </div>
+
+                <h1 data-id="419" style="font-size:26px;font-weight:700;color:#fff;margin-top:28px;">Your federal system needs to stay authorized every hour of every day. Here's how.</h1>
+                <p data-id="420" style="font-size:15px;color:#94a3b8;margin-top:12px;max-width:600px;line-height:1.6;text-align:center;">Not on a three-year cycle. Not with a manual evidence package. Every deployment, every configuration change — authorization posture updated automatically, with evidence your Authorizing Official can query in real time.</p>
+                <p data-id="421" style="margin-top:20px;font-size:14px;color:#f5a623;font-style:italic;text-align:center;">This isn't monitoring bolted onto the side of your ATO process. This is continuous authorization — built into how the system runs.</p>
+                <button data-id="422" class="cta-button" id="s4-start-btn-w7x8">▶&ensp;RUN ATO SIMULATION</button>
+                <p data-id="423" class="cta-hint" style="margin-top:12px;">6 stages · closed-loop pipeline · NIST RMF aligned · cATO evidence generated automatically</p>
+            </div>
+
+            <!-- SIMULATION CONTAINER -->
+            <div data-id="424" id="s4-sim-container-y9z0" style="display:none;max-width:900px;margin:0 auto;">
+
+                <!-- Reset -->
+                <div data-id="425" style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                    <button data-id="426" class="reset-btn visible" id="s4-reset-btn-a1b2">↺ Reset</button>
+                </div>
+
+                <!-- Stages container -->
+                <div data-id="427" class="stages-container visible" id="s4-stages-c3d4" style="display:flex;">
+
+                    <!-- Stage 1 — NIST RMF -->
+                    <div data-id="428" class="stage-card" id="s4-stage1-e5f6" style="--glow-shadow: 0 0 24px rgba(30,64,175,0.3), inset 0 0 24px rgba(30,64,175,0.06);">
+                        <div data-id="429" class="left-accent" style="background:#1e40af;"></div>
+                        <div data-id="430" class="stage-header">
+                            <div data-id="431" class="stage-num" style="background:#1e40af;color:#fff;">1</div>
+                            <span data-id="432" class="stage-badge" style="color:#1e40af;">STAGE 1 &ensp;·&ensp; NIST RISK MANAGEMENT FRAMEWORK</span>
+                            <span data-id="433" class="sdf-pill" style="background:#1e40af;color:#fff;">THE MANDATE</span>
+                        </div>
+                        <div data-id="434" class="stage-title">Your Authorization Boundaries Are Already Defined</div>
+                        <div data-id="435" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="436" class="section-text">Before anything happens, the governance contract is already in place. Your system's security plan defines what agents are authorized to do, what controls must be met, and what evidence your Authorizing Official requires. NIST RMF Step 7 — continuous monitoring — is the stage that never ends. Every event that enters this pipeline is evaluated against those pre-defined boundaries.</p>
+                        <div data-id="437" class="section-label" style="color:#1e40af;">ATO IMPACT</div>
+                        <p data-id="438" class="decision-text">Control baseline: active. Authorization boundary: defined. Monitoring is no longer a calendar event — it's a continuous machine.</p>
+                        <div data-id="439" class="data-strip">Framework: NIST SP 800-37 Rev 2 &nbsp;·&nbsp; Controls: SP 800-53 High Baseline &nbsp;·&nbsp; Step: 7 — MONITOR &nbsp;·&nbsp; SSP Status: ACTIVE &nbsp;·&nbsp; cATO Mode: CONTINUOUS</div>
+                    </div>
+
+                    <!-- Stage 2 — COMPLIANCE ASSISTANT -->
+                    <div data-id="440" class="stage-card" id="s4-stage2-g7h8" style="--glow-shadow: 0 0 24px rgba(6,182,212,0.2), inset 0 0 24px rgba(6,182,212,0.04);">
+                        <div data-id="441" class="left-accent" style="background:#06b6d4;"></div>
+                        <div data-id="442" class="stage-header">
+                            <div data-id="443" class="stage-num" style="background:#06b6d4;">2</div>
+                            <span data-id="444" class="stage-badge" style="color:#06b6d4;">STAGE 2 &ensp;·&ensp; COMPLIANCE ASSISTANT</span>
+                            <span data-id="445" class="sdf-pill" style="background:#06b6d4;color:#0a0f1e;">THE SENSOR</span>
+                        </div>
+                        <div data-id="446" class="stage-title">Something Changed — and the System Knows Exactly Why</div>
+                        <div data-id="447" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="448" class="section-text">At 11:47 PM, a deployment happens on the production cluster. Davis AI doesn't just detect the change — it traces why it happened and what it affects. It identifies which specific NIST 800-53 controls are now at risk: Configuration Change Control (CM-3) and Software Integrity (SI-7). This isn't a generic alarm. It's a causally-attributed, control-referenced compliance event with a complete chain: Deployment → Configuration Drift → Control Violation.</p>
+                        <div data-id="449" class="section-label" style="color:#06b6d4;">ATO IMPACT</div>
+                        <p data-id="450" class="decision-text">Two controls at risk: CM-3 and SI-7. Causal chain documented. Your Authorizing Official has never had this level of real-time evidence before.</p>
+                        <div data-id="451" class="data-strip">Entity: hive-prod-cluster-07 &nbsp;·&nbsp; Controls at Risk: CM-3 · SI-7 &nbsp;·&nbsp; Causal Chain: Deployment → Config Drift → Violation &nbsp;·&nbsp; Risk Level: HIGH &nbsp;·&nbsp; Signal: UNCLASSIFIED</div>
+                    </div>
+
+                    <!-- Stage 3 — SDF CLASSIFICATION -->
+                    <div data-id="452" class="stage-card" id="s4-stage3-i9j0" style="--glow-shadow: 0 0 24px rgba(245,158,11,0.2), inset 0 0 24px rgba(245,158,11,0.04);">
+                        <div data-id="453" class="left-accent" style="background:#f59e0b;"></div>
+                        <div data-id="454" class="stage-header">
+                            <div data-id="455" class="stage-num" style="background:#f59e0b;">3</div>
+                            <span data-id="456" class="stage-badge" style="color:#f59e0b;">STAGE 3 &ensp;·&ensp; SDF CLASSIFICATION ENGINE</span>
+                            <span data-id="457" class="sdf-pill" style="background:#f59e0b;color:#0a0f1e;">THE ARBITER</span>
+                        </div>
+                        <div data-id="458" class="stage-title">One Classification. One Authorization Posture.</div>
+                        <div data-id="459" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="460" class="section-text">The classification engine looks at the causal chain and asks: is this system still operating within its authorized boundary? High risk plus confirmed configuration drift gives one answer: FAILURE. That single classification immediately changes the system's authorization posture from GREEN to AT RISK and sets the agent permission level to REMEDIATE — guardrailed. One word changes the status of the entire system.</p>
+                        <div data-id="461" class="section-label" style="color:#f59e0b;">ATO IMPACT</div>
+                        <p data-id="462" class="decision-text">Classification: FAILURE. Authorization posture: AT RISK. Agent permission: REMEDIATE, with guardrails. Everything downstream follows from this one decision.</p>
+                        <div data-id="463" class="data-strip">SDF Tier: FAILURE &nbsp;·&nbsp; ATO Posture: AT RISK 🔴 &nbsp;·&nbsp; Permission: REMEDIATE (guardrailed) &nbsp;·&nbsp; Controls: CM-3 + SI-7 &nbsp;·&nbsp; Confidence: HIGH</div>
+                    </div>
+
+                    <!-- Stage 4 — GOVERNANCE GUARD -->
+                    <div data-id="464" class="stage-card" id="s4-stage4-k1l2" style="--glow-shadow: 0 0 24px rgba(139,92,246,0.2), inset 0 0 24px rgba(139,92,246,0.04);">
+                        <div data-id="465" class="left-accent" style="background:#8b5cf6;"></div>
+                        <div data-id="466" class="stage-header">
+                            <div data-id="467" class="stage-num" style="background:#8b5cf6;color:#fff;">4</div>
+                            <span data-id="468" class="stage-badge" style="color:#8b5cf6;">STAGE 4 &ensp;·&ensp; GOVERNANCE GUARD</span>
+                            <span data-id="469" class="sdf-pill" style="background:#8b5cf6;color:#fff;">THE ENFORCEMENT</span>
+                        </div>
+                        <div data-id="470" class="stage-title">The Boundary Holds. The Evidence Writes Itself. The AO Is Notified.</div>
+                        <div data-id="471" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="472" class="section-text">Governance Guard reads the FAILURE classification and does three things simultaneously. First, it enforces the security plan boundary — only the pre-approved remediation playbook is authorized. Novel fixes are blocked at the architecture level, not through configuration. Second, it starts writing the evidence record to Grail in real time — control reference, policy decision, actions authorized, actions blocked, timestamp — all immutable. Third, it queues the Authorizing Official notification. The audit record isn't assembled after the incident. It's written as the incident unfolds.</p>
+                        <div data-id="473" class="section-label" style="color:#8b5cf6;">ATO IMPACT</div>
+                        <p data-id="474" class="decision-text">Approved playbook authorized. Everything else blocked. Evidence record writing. AO notification queued.</p>
+                        <div data-id="475" class="data-strip">Playbook: ansible-rollback-v2 &nbsp;·&nbsp; Novel Actions: BLOCKED &nbsp;·&nbsp; Grail Write: INITIATED &nbsp;·&nbsp; AO Notification: QUEUED &nbsp;·&nbsp; Evidence Format: NIST IR 8011 compliant</div>
+                    </div>
+
+                    <!-- Stage 5 — MISSION GOVERNANCE -->
+                    <div data-id="476" class="stage-card" id="s4-stage5-m3n4" style="--glow-shadow: 0 0 24px rgba(34,197,94,0.2), inset 0 0 24px rgba(34,197,94,0.04);">
+                        <div data-id="477" class="left-accent" style="background:#22c55e;"></div>
+                        <div data-id="478" class="stage-header">
+                            <div data-id="479" class="stage-num" style="background:#22c55e;">5</div>
+                            <span data-id="480" class="stage-badge" style="color:#22c55e;">STAGE 5 &ensp;·&ensp; MISSION GOVERNANCE &ensp;·&ensp; ATO CHAIN COMPLETE ✓</span>
+                            <span data-id="481" class="sdf-pill" style="background:#22c55e;color:#0a0f1e;">THE AUTHORIZATION</span>
+                        </div>
+                        <div data-id="482" class="stage-title">Four Minutes Later — Authorization Restored.</div>
+                        <div data-id="483" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="484" class="section-text">Four minutes and twelve seconds. The remediation playbook runs within its guardrails. CM-3 and SI-7 controls return to their authorized parameters. Governance Guard closes the evidence chain. The authorization posture moves back to GREEN — Continuously Authorized. The complete event record — detection, classification, enforcement, remediation, restoration — is now in Grail under one lineage ID, queryable by the Authorizing Official at any time.</p>
+                        <div data-id="485" class="section-label" style="color:#22c55e;">ATO IMPACT</div>
+                        <p data-id="486" class="decision-text">Authorization: RESTORED. Evidence record: complete. The AO didn't assemble any of this — the pipeline produced it automatically.</p>
+                        <div data-id="487" class="data-strip">Lineage ID: ato-event-0721-001 &nbsp;·&nbsp; Chain Length: 5 steps &nbsp;·&nbsp; Controls Restored: CM-3 + SI-7 &nbsp;·&nbsp; ConMon: CA-7 compliant &nbsp;·&nbsp; Time to Restoration: 4m 12s &nbsp;·&nbsp; Storage: Grail &nbsp;·&nbsp; Status: IMMUTABLE</div>
+                    </div>
+
+                    <!-- ═══ Stage 6 — MISSION ASSURANCE ═══ -->
+                    <div data-id="488" class="stage-card" id="s4-stage6-ma1b2" style="--glow-shadow: 0 0 24px rgba(234,179,8,0.25), inset 0 0 24px rgba(234,179,8,0.05); background: rgba(234,179,8,0.03);">
+                        <div data-id="489" class="left-accent" style="background:#eab308;"></div>
+                        <div data-id="490" class="stage-header">
+                            <div data-id="491" class="stage-num" style="background:#eab308;color:#0a0f1e;">6</div>
+                            <span data-id="492" class="stage-badge" style="color:#eab308;">STAGE 6 &ensp;·&ensp; MISSION ASSURANCE &ensp;·&ensp; LOOP CLOSED ↺</span>
+                            <span data-id="493" class="sdf-pill" style="background:#eab308;color:#0a0f1e;font-weight:700;">CLOSING THE CONTINUOUS PIPELINE LOOP</span>
+                        </div>
+                        <div data-id="494" class="stage-title">The Loop Closes — and the System Gets Smarter.</div>
+                        <div data-id="495" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="496" class="section-text">Mission Assurance is the part that makes this a platform, not just a pipeline. Every classified event, every governance decision, and every remediation outcome feeds back into the system. The NIST RMF baseline updates. The security plan refines itself when recurring failures point to gaps. The Authorizing Official gets a forward-looking risk trend — not just a record of what happened, but a picture of where the mission is heading. The next authorization cycle starts with better information than the last one had.</p>
+                        <div data-id="497" class="section-label" style="color:#eab308;">ATO IMPACT</div>
+                        <p data-id="498" class="decision-text">Stage 6 feeds back into Stage 1. The governance contract improves itself — every event, every cycle, every classification.</p>
+                        <div data-id="499" class="data-strip">Events Aggregated: 847 (today) &nbsp;·&nbsp; Patterns Identified: 3 recurring CM-3 sequences &nbsp;·&nbsp; SSP Refinement: TRIGGERED &nbsp;·&nbsp; Playbook Optimization: ansible-rollback-v2 confirmed fastest &nbsp;·&nbsp; RMF Feedback: QUEUED → Stage 1 &nbsp;·&nbsp; Mission Risk Trend: IMPROVING ↑</div>
+
+                        <!-- Feedback Loop Visual -->
+                        <div data-id="500" class="s4-feedback-loop">
+                            <div data-id="501" class="s4-loop-dots">
+                                <div data-id="502" class="s4-loop-dot" style="background:#1e40af;"></div>
+                                <div data-id="503" class="s4-loop-line"></div>
+                                <div data-id="504" class="s4-loop-dot" style="background:#06b6d4;"></div>
+                                <div data-id="505" class="s4-loop-line"></div>
+                                <div data-id="506" class="s4-loop-dot" style="background:#f59e0b;"></div>
+                                <div data-id="507" class="s4-loop-line"></div>
+                                <div data-id="508" class="s4-loop-dot" style="background:#8b5cf6;"></div>
+                                <div data-id="509" class="s4-loop-line"></div>
+                                <div data-id="510" class="s4-loop-dot" style="background:#22c55e;"></div>
+                                <div data-id="511" class="s4-loop-line"></div>
+                                <div data-id="512" class="s4-loop-dot" style="background:#eab308;"></div>
+                            </div>
+                            <div data-id="513" class="s4-loop-label-row">
+                                <div data-id="514" class="s4-loop-label-item" style="color:#1e40af;">NIST RMF</div>
+                                <div data-id="515" class="s4-loop-label-item" style="color:#06b6d4;">CA</div>
+                                <div data-id="516" class="s4-loop-label-item" style="color:#f59e0b;">SDF</div>
+                                <div data-id="517" class="s4-loop-label-item" style="color:#8b5cf6;">GG</div>
+                                <div data-id="518" class="s4-loop-label-item" style="color:#22c55e;">Mission Gov</div>
+                                <div data-id="519" class="s4-loop-label-item" style="color:#eab308;">Mission Assurance</div>
+                            </div>
+                            <div data-id="520" class="s4-feedback-arrow"></div>
+                            <div data-id="521" class="s4-feedback-loop-text">FEEDBACK LOOP ACTIVE — Mission Assurance → NIST RMF</div>
+                        </div>
+                    </div>
+
+                    <!-- ATO POSTURE DASHBOARD -->
+                    <div data-id="522" class="s4-dashboard" id="s4-dashboard-o5p6" style="margin-top:8px;">
+                        <div data-id="523" class="s4-dashboard-header">
+                            <span data-id="524" class="s4-dash-badge">AUTHORIZATION STATUS — LIVE</span>
+                            <span data-id="525" class="s4-dash-live">LIVE — Queryable via DQL</span>
+                        </div>
+                        <div data-id="526" class="s4-dash-grid">
+                            <!-- LEFT COLUMN -->
+                            <div data-id="527">
+                                <div data-id="528" style="margin-top:16px;">
+                                    <div data-id="529" class="s4-status-pill">● CONTINUOUSLY AUTHORIZED</div>
+                                </div>
+                                <div data-id="530" style="margin-top:12px;font-size:13px;color:#94a3b8;line-height:1.7;">
+                                    System: <span data-id="531" style="color:#cbd5e1;font-weight:600;">HIVE Production Cluster</span> · Impact Level: <span data-id="532" style="color:#cbd5e1;font-weight:600;">HIGH</span><br data-id="533">
+                                    Last event: <span data-id="534" style="color:#cbd5e1;">ato-event-0721-001</span> · Resolved: <span data-id="535" style="color:#22c55e;font-weight:600;">4m 12s</span><br data-id="536">
+                                    Next scheduled assessment: <span data-id="537" style="color:#f5a623;font-weight:600;">AUTOMATIC — continuous</span>
+                                </div>
+                                <div data-id="538" class="s4-metric-row">
+                                    <div data-id="539" class="s4-metric-box">
+                                        <div data-id="540" class="s4-metric-val" style="color:#22c55e;">847</div>
+                                        <div data-id="541" class="s4-metric-label">Events Classified Today</div>
+                                    </div>
+                                    <div data-id="542" class="s4-metric-box">
+                                        <div data-id="543" class="s4-metric-val" style="color:#22c55e;">843</div>
+                                        <div data-id="544" class="s4-metric-label">Resolved Automatically</div>
+                                    </div>
+                                    <div data-id="545" class="s4-metric-box">
+                                        <div data-id="546" class="s4-metric-val" style="color:#f59e0b;">4</div>
+                                        <div data-id="547" class="s4-metric-label">Human Reviews Required</div>
+                                    </div>
+                                    <div data-id="548" class="s4-metric-box">
+                                        <div data-id="549" class="s4-metric-val" style="color:#eab308;">↑ IMPROVING</div>
+                                        <div data-id="550" class="s4-metric-label">Mission Risk Trend</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- RIGHT COLUMN -->
+                            <div data-id="551">
+                                <div data-id="552" style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#22c55e;margin-top:16px;margin-bottom:12px;">COMPLETE AUDIT CHAIN</div>
+                                <div data-id="553" class="s4-chain-row">
+                                    <div data-id="554" class="s4-chain-dot" style="background:#1e40af;"></div>
+                                    <div data-id="555" class="s4-chain-text"><span data-id="556">NIST RMF</span> — Control baseline confirmed · 09:47:58Z</div>
+                                </div>
+                                <div data-id="557" class="s4-chain-row">
+                                    <div data-id="558" class="s4-chain-dot" style="background:#06b6d4;"></div>
+                                    <div data-id="559" class="s4-chain-text"><span data-id="560">Compliance Assistant</span> — CM-3 + SI-7 signal generated · 09:48:00Z</div>
+                                </div>
+                                <div data-id="561" class="s4-chain-row">
+                                    <div data-id="562" class="s4-chain-dot" style="background:#f59e0b;"></div>
+                                    <div data-id="563" class="s4-chain-text"><span data-id="564">SDF Classification</span> — FAILURE tier assigned · 09:48:01Z</div>
+                                </div>
+                                <div data-id="565" class="s4-chain-row">
+                                    <div data-id="566" class="s4-chain-dot" style="background:#8b5cf6;"></div>
+                                    <div data-id="567" class="s4-chain-text"><span data-id="568">Governance Guard</span> — Remediation authorized + executed · 09:48:03Z</div>
+                                </div>
+                                <div data-id="569" class="s4-chain-row">
+                                    <div data-id="570" class="s4-chain-dot" style="background:#22c55e;"></div>
+                                    <div data-id="571" class="s4-chain-text"><span data-id="572">Mission Governance</span> — Authorization restored · 09:52:12Z</div>
+                                </div>
+                                <div data-id="573" class="s4-chain-row">
+                                    <div data-id="574" class="s4-chain-dot" style="background:#eab308;"></div>
+                                    <div data-id="575" class="s4-chain-text"><span data-id="576">Mission Assurance</span> — Pattern analysis complete · RMF feedback queued · 09:52:14Z</div>
+                                </div>
+                                <div data-id="577" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#64748b;line-height:1.6;">Storage: Grail · Queryable: DQL · Format: NIST IR 8011 · Chain: 6 links · Status: IMMUTABLE</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EVOLVED CARDINAL RULE -->
+                    <div data-id="578" class="cardinal-card" id="s4-cardinal-q7r8" style="margin-top:8px;">
+                        <div data-id="579" class="cardinal-label">THE EVOLVED CARDINAL RULE — ALL THREE TIERS</div>
+
+                        <!-- TIER 1 -->
+                        <div data-id="580" style="margin-top:20px;">
+                            <div data-id="581" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">SDF CORE RULE — STAGES 1–3</div>
+                            <div data-id="582" style="font-size:20px;font-weight:700;margin-top:8px;line-height:1.5;">
+                                <span data-id="583" style="color:#06b6d4;">The classification</span> <span data-id="584" style="color:#f5a623;">of the data</span> <span data-id="585" style="color:#8b5cf6;">determines the permission</span> <span data-id="586" style="color:#22c55e;">of the agent.</span>
+                            </div>
+                        </div>
+
+                        <div data-id="587" style="height:1px;background:rgba(255,255,255,0.08);margin:20px 0;"></div>
+
+                        <!-- TIER 2 -->
+                        <div data-id="588">
+                            <div data-id="589" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">ATO PIPELINE RULE — STAGES 1–5</div>
+                            <div data-id="590" style="font-size:20px;font-weight:700;margin-top:8px;line-height:1.5;">
+                                <span data-id="591" style="color:#f59e0b;">The classification</span> <span data-id="592" style="color:#06b6d4;">of the signal</span> <span data-id="593" style="color:#8b5cf6;">determines the authorization posture</span> <span data-id="594" style="color:#22c55e;">of the system.</span>
+                            </div>
+                        </div>
+
+                        <div data-id="595" style="height:1px;background:rgba(255,255,255,0.08);margin:20px 0;"></div>
+
+                        <!-- TIER 3 -->
+                        <div data-id="596">
+                            <div data-id="597" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">CLOSED-LOOP RULE — ALL SIX STAGES</div>
+                            <div data-id="598" style="font-size:18px;font-weight:700;color:#eab308;margin-top:8px;line-height:1.5;">Classification governs the action. Assurance governs the mission.</div>
+                        </div>
+
+                        <div data-id="599" style="margin-top:16px;font-size:13px;color:#94a3b8;font-style:italic;line-height:1.6;">Every compliance event. Every control violation. Every governed remediation. Every ConMon artifact. Every mission risk trend. Automatic. Immutable. Queryable. Self-improving.</div>
+
+                        <div data-id="600" style="margin-top:8px;font-size:14px;font-weight:700;color:#f5a623;font-style:italic;">That's not a community innovation. That's a platform standard.</div>
+
+                        <div data-id="601" style="margin-top:20px;">
+                            <button data-id="602" class="run-again-btn" id="s4-run-again-s9t0">↺&ensp;Run Again</button>
+                        </div>
+                    </div>
+
+                </div><!-- end stages container -->
+            </div><!-- end sim container -->
+        </div><!-- end story4 -->
+
+        <!-- ═══════ STORY 5 — GOVERNANCE GUARD AT SCALE ═══════ -->
+        <div data-id="603" id="story5-panel-p3q4" class="story-panel" style="display:none;">
+
+            <!-- INTRO SCREEN -->
+            <div data-id="604" class="cta-container" id="s5-intro-r5s6">
+                <!-- Badge row -->
+                <div data-id="605" class="s4-badge-row" style="margin-bottom:24px;">
+                    <span data-id="606" class="s4-pill" style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">✓ Story 1</span>
+                    <div data-id="607" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="608" class="s4-pill" style="background:rgba(6,182,212,0.12);color:#06b6d4;border:1px solid rgba(6,182,212,0.3);">✓ Story 2</span>
+                    <div data-id="609" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="610" class="s4-pill" style="background:rgba(139,92,246,0.12);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);">✓ Story 3</span>
+                    <div data-id="611" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="612" class="s4-pill" style="background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.3);">✓ Story 4</span>
+                    <div data-id="613" class="s4-connector" style="background:rgba(255,255,255,0.1);"></div>
+                    <span data-id="614" class="s4-pill s4-pill-pulse" style="background:rgba(217,119,6,0.12);color:#d97706;border:1px solid rgba(217,119,6,0.4);">◈ Story 5 — GG at Scale</span>
+                </div>
+
+                <!-- Context sentence -->
+                <p data-id="615" style="font-size:14px;color:#94a3b8;text-align:center;max-width:640px;margin:0 auto 16px auto;line-height:1.7;">Stories 1 through 4 show the pipeline working on a single event. Story 5 shows it working on all of them — simultaneously, across every system, every agent, and every authorization boundary in your environment.</p>
+
+                <!-- Throughline Statement -->
+                <div data-id="616" style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">SDF MEANING THROUGHLINE</div>
+                <div data-id="617" style="font-size:20px;font-weight:700;color:#d97706;line-height:1.5;max-width:640px;">THIS IS WHERE SDF MEANING BECOMES AUTHORIZATION</div>
+                <div data-id="618" style="font-size:20px;font-weight:700;color:#f5a623;line-height:1.5;max-width:640px;">AND AUTHORIZATION BECOMES TRUST</div>
+                <div data-id="619" style="margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
+                    <span data-id="620" style="font-size:11px;font-weight:600;color:#94a3b8;">Telemetry</span>
+                    <span data-id="621" style="color:#475569;">→</span>
+                    <span data-id="622" style="font-size:11px;font-weight:600;color:#d97706;">SDF Meaning</span>
+                    <span data-id="623" style="color:#475569;">→</span>
+                    <span data-id="624" style="font-size:11px;font-weight:600;color:#8b5cf6;">Governance</span>
+                    <span data-id="625" style="color:#475569;">→</span>
+                    <span data-id="626" style="font-size:11px;font-weight:600;color:#22c55e;">Action</span>
+                    <span data-id="627" style="color:#475569;">→</span>
+                    <span data-id="628" style="font-size:11px;font-weight:600;color:#0d9488;">Evidence</span>
+                    <span data-id="629" style="color:#475569;">→</span>
+                    <span data-id="630" style="font-size:11px;font-weight:700;color:#f5a623;">Trust</span>
+                </div>
+
+                <h1 data-id="631" style="font-size:26px;font-weight:700;color:#fff;margin-top:28px;">Governance Guard at Scale</h1>
+                <p data-id="632" style="font-size:15px;color:#94a3b8;margin-top:12px;max-width:600px;line-height:1.6;text-align:center;">Nine stages. Program-level enforcement. Every governed behavior bounded, evidenced, and assured — across every system, every environment, every mission.</p>
+                <button data-id="633" class="cta-button" id="s5-start-btn-t7u8" style="margin-top:28px;">▶&ensp;RUN SIMULATION — GOVERNANCE GUARD AT SCALE</button>
+                <p data-id="634" class="cta-hint" style="margin-top:12px;">9 stages · ~11 seconds · closed-loop program-level pipeline</p>
+            </div>
+
+            <!-- SIMULATION CONTAINER -->
+            <div data-id="635" id="s5-sim-container-v9w0" style="display:none;max-width:900px;margin:0 auto;">
+
+                <!-- Reset -->
+                <div data-id="636" style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                    <button data-id="637" class="reset-btn visible" id="s5-reset-btn-x1y2">↺ Reset</button>
+                </div>
+
+                <!-- Throughline -->
+                <div data-id="638" style="text-align:center;margin-bottom:20px;">
+                    <div data-id="639" style="font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#64748b;">SDF MEANING THROUGHLINE</div>
+                    <div data-id="640" style="font-size:13px;font-weight:600;color:#d97706;margin-top:4px;">THIS IS WHERE SDF MEANING BECOMES AUTHORIZATION AND AUTHORIZATION BECOMES TRUST</div>
+                    <div data-id="641" style="margin-top:6px;font-size:10px;color:#94a3b8;">Telemetry → SDF Meaning → Governance → Action → Evidence → Trust</div>
+                </div>
+
+                <!-- Progress Pips -->
+                <div data-id="642" class="s5-progress-bar" id="s5-progress-bar-z3a4">
+                    <div data-id="643" class="s5-pip" data-pip="1" id="s5-pip1">1</div>
+                    <div data-id="644" class="s5-pip-line" data-pipline="1"></div>
+                    <div data-id="645" class="s5-pip" data-pip="2" id="s5-pip2">2</div>
+                    <div data-id="646" class="s5-pip-line" data-pipline="2"></div>
+                    <div data-id="647" class="s5-pip" data-pip="3" id="s5-pip3">3</div>
+                    <div data-id="648" class="s5-pip-line" data-pipline="3"></div>
+                    <div data-id="649" class="s5-pip" data-pip="4" id="s5-pip4">4</div>
+                    <div data-id="650" class="s5-pip-line" data-pipline="4"></div>
+                    <div data-id="651" class="s5-pip" data-pip="5" id="s5-pip5">5</div>
+                    <div data-id="652" class="s5-pip-line" data-pipline="5"></div>
+                    <div data-id="653" class="s5-pip" data-pip="6" id="s5-pip6">6</div>
+                    <div data-id="654" class="s5-pip-line" data-pipline="6"></div>
+                    <div data-id="655" class="s5-pip" data-pip="7" id="s5-pip7">7</div>
+                    <div data-id="656" class="s5-pip-line" data-pipline="7"></div>
+                    <div data-id="657" class="s5-pip" data-pip="8" id="s5-pip8">8</div>
+                    <div data-id="658" class="s5-pip-line" data-pipline="8"></div>
+                    <div data-id="659" class="s5-pip" data-pip="9" id="s5-pip9">9</div>
+                </div>
+
+                <!-- Stage Cards Container -->
+                <div data-id="660" id="s5-stages-b5c6" style="display:flex;flex-direction:column;">
+
+                    <!-- STAGE 1 -->
+                    <div data-id="661" class="s5-stage-card" id="s5-stage1" style="--glow-shadow: 0 0 24px rgba(30,58,138,0.3), inset 0 0 24px rgba(30,58,138,0.06);">
+                        <div data-id="662" class="left-accent" style="background:#1e3a8a;"></div>
+                        <div data-id="663" class="stage-header">
+                            <div data-id="664" class="stage-num" style="background:#1e3a8a;color:#fff;">1</div>
+                            <span data-id="665" class="stage-badge" style="color:#1e3a8a;">STAGE 1 OF 9 &ensp;·&ensp; PROGRAM SCALE SIGNALS</span>
+                        </div>
+                        <div data-id="666" style="font-size:11px;color:#64748b;margin-top:4px;">Compliance Assistant · Environment-Wide Detection</div>
+                        <div data-id="667" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="668" class="section-text">SDF-meaningful moments appear across systems. You see patterns emerge clearly.</p>
+                        <div data-id="669" class="s5-stage-progress"><div data-id="670" class="s5-stage-progress-fill" style="width:11.1%;background:#1e3a8a;"></div></div>
+                    </div>
+
+                    <!-- STAGE 2 -->
+                    <div data-id="671" class="s5-stage-card" id="s5-stage2" style="--glow-shadow: 0 0 24px rgba(13,148,136,0.3), inset 0 0 24px rgba(13,148,136,0.06);">
+                        <div data-id="672" class="left-accent" style="background:#0d9488;"></div>
+                        <div data-id="673" class="stage-header">
+                            <div data-id="674" class="stage-num" style="background:#0d9488;color:#fff;">2</div>
+                            <span data-id="675" class="stage-badge" style="color:#0d9488;">STAGE 2 OF 9 &ensp;·&ensp; PROGRAM SCALE IDENTITY</span>
+                        </div>
+                        <div data-id="676" style="font-size:11px;color:#64748b;margin-top:4px;">SDF Classification Engine · Entity Classification</div>
+                        <div data-id="677" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="678" class="section-text">Each entity gains clear identity. You understand its role instantly.</p>
+                        <div data-id="679" class="s5-stage-progress"><div data-id="680" class="s5-stage-progress-fill" style="width:22.2%;background:#0d9488;"></div></div>
+                    </div>
+
+                    <!-- STAGE 3 -->
+                    <div data-id="681" class="s5-stage-card" id="s5-stage3" style="--glow-shadow: 0 0 24px rgba(8,145,178,0.3), inset 0 0 24px rgba(8,145,178,0.06);">
+                        <div data-id="682" class="left-accent" style="background:#0891b2;"></div>
+                        <div data-id="683" class="stage-header">
+                            <div data-id="684" class="stage-num" style="background:#0891b2;color:#fff;">3</div>
+                            <span data-id="685" class="stage-badge" style="color:#0891b2;">STAGE 3 OF 9 &ensp;·&ensp; COMPLIANCE ASSISTANT INTELLIGENCE</span>
+                        </div>
+                        <div data-id="686" style="font-size:11px;color:#64748b;margin-top:4px;">Compliance Assistant · Mission Impact Analysis</div>
+                        <div data-id="687" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="688" class="section-text">Insights reveal mission impact. You gain clarity without analysis.</p>
+                        <div data-id="689" class="s5-stage-progress"><div data-id="690" class="s5-stage-progress-fill" style="width:33.3%;background:#0891b2;"></div></div>
+                    </div>
+
+                    <!-- STAGE 4 -->
+                    <div data-id="691" class="s5-stage-card" id="s5-stage4" style="--glow-shadow: 0 0 24px rgba(217,119,6,0.3), inset 0 0 24px rgba(217,119,6,0.06);">
+                        <div data-id="692" class="left-accent" style="background:#d97706;"></div>
+                        <div data-id="693" class="stage-header">
+                            <div data-id="694" class="stage-num" style="background:#d97706;color:#0a0f1e;">4</div>
+                            <span data-id="695" class="stage-badge" style="color:#d97706;">STAGE 4 OF 9 &ensp;·&ensp; MCP CONTEXT NORMALIZATION</span>
+                        </div>
+                        <div data-id="696" style="font-size:11px;color:#64748b;margin-top:4px;">Model Context Protocol · Signal Normalization</div>
+                        <div data-id="697" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="698" class="section-text">SDF meaning becomes governed context. You see action take shape.</p>
+                        <div data-id="699" class="s5-stage-progress"><div data-id="700" class="s5-stage-progress-fill" style="width:44.4%;background:#d97706;"></div></div>
+                    </div>
+
+                    <!-- STAGE 5 -->
+                    <div data-id="701" class="s5-stage-card" id="s5-stage5" style="--glow-shadow: 0 0 24px rgba(124,58,237,0.3), inset 0 0 24px rgba(124,58,237,0.06);">
+                        <div data-id="702" class="left-accent" style="background:#7c3aed;"></div>
+                        <div data-id="703" class="stage-header">
+                            <div data-id="704" class="stage-num" style="background:#7c3aed;color:#fff;">5</div>
+                            <span data-id="705" class="stage-badge" style="color:#7c3aed;">STAGE 5 OF 9 &ensp;·&ensp; GOVERNANCE GUARD GATE ENGINE</span>
+                            <span data-id="706" class="sdf-pill" style="background:#7c3aed;color:#fff;">GG AT SCALE</span>
+                        </div>
+                        <div data-id="707" style="font-size:11px;color:#64748b;margin-top:4px;">Governance Guard at Scale · Program-Level Enforcement Layer</div>
+                        <div data-id="708" style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(124,58,237,0.6);margin-top:6px;">GOVERNANCE GUARD AT SCALE · Every agent. Every boundary. Simultaneously.</div>
+                        <div data-id="709" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="710" class="section-text">The moment is evaluated against expectations. You gain confidence in mission rules.</p>
+                        <div data-id="711" class="s5-stage-progress"><div data-id="712" class="s5-stage-progress-fill" style="width:55.5%;background:#7c3aed;"></div></div>
+                    </div>
+
+                    <!-- STAGE 6 -->
+                    <div data-id="713" class="s5-stage-card" id="s5-stage6" style="--glow-shadow: 0 0 24px rgba(21,128,61,0.3), inset 0 0 24px rgba(21,128,61,0.06);">
+                        <div data-id="714" class="left-accent" style="background:#15803d;"></div>
+                        <div data-id="715" class="stage-header">
+                            <div data-id="716" class="stage-num" style="background:#15803d;color:#fff;">6</div>
+                            <span data-id="717" class="stage-badge" style="color:#15803d;">STAGE 6 OF 9 &ensp;·&ensp; PROGRAM SCALE GOVERNED ACTIONS</span>
+                        </div>
+                        <div data-id="718" style="font-size:11px;color:#64748b;margin-top:4px;">Agentic Layer · Mission-Aligned Execution</div>
+                        <div data-id="719" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="720" class="section-text">Governed behavior moves safely. You see alignment across systems.</p>
+                        <div data-id="721" class="s5-stage-progress"><div data-id="722" class="s5-stage-progress-fill" style="width:66.6%;background:#15803d;"></div></div>
+                    </div>
+
+                    <!-- STAGE 7 -->
+                    <div data-id="723" class="s5-stage-card" id="s5-stage7" style="--glow-shadow: 0 0 24px rgba(15,118,110,0.3), inset 0 0 24px rgba(15,118,110,0.06);">
+                        <div data-id="724" class="left-accent" style="background:#0f766e;"></div>
+                        <div data-id="725" class="stage-header">
+                            <div data-id="726" class="stage-num" style="background:#0f766e;color:#fff;">7</div>
+                            <span data-id="727" class="stage-badge" style="color:#0f766e;">STAGE 7 OF 9 &ensp;·&ensp; PROGRAM SCALE EVIDENCE</span>
+                        </div>
+                        <div data-id="728" style="font-size:11px;color:#64748b;margin-top:4px;">Grail · Immutable Evidence Fabric</div>
+                        <div data-id="729" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="730" class="section-text">SDF meaning becomes durable evidence. You receive clarity automatically.</p>
+                        <div data-id="731" class="s5-stage-progress"><div data-id="732" class="s5-stage-progress-fill" style="width:77.7%;background:#0f766e;"></div></div>
+                    </div>
+
+                    <!-- STAGE 8 -->
+                    <div data-id="733" class="s5-stage-card" id="s5-stage8" style="--glow-shadow: 0 0 24px rgba(234,88,12,0.3), inset 0 0 24px rgba(234,88,12,0.06);">
+                        <div data-id="734" class="left-accent" style="background:#ea580c;"></div>
+                        <div data-id="735" class="stage-header">
+                            <div data-id="736" class="stage-num" style="background:#ea580c;color:#fff;">8</div>
+                            <span data-id="737" class="stage-badge" style="color:#ea580c;">STAGE 8 OF 9 &ensp;·&ensp; cATO INHERITANCE</span>
+                        </div>
+                        <div data-id="738" style="font-size:11px;color:#64748b;margin-top:4px;">Authorization Layer · Continuous ATO Engine</div>
+                        <div data-id="739" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="740" class="section-text">Governed SDF meaning flows into authorization. You experience continuous trust.</p>
+                        <div data-id="741" class="s5-stage-progress"><div data-id="742" class="s5-stage-progress-fill" style="width:88.8%;background:#ea580c;"></div></div>
+                    </div>
+
+                    <!-- STAGE 9 -->
+                    <div data-id="743" class="s5-stage-card" id="s5-stage9" style="--glow-shadow: 0 0 24px rgba(217,119,6,0.35), inset 0 0 24px rgba(217,119,6,0.08); background: rgba(254,249,195,0.03);">
+                        <div data-id="744" class="left-accent" style="background:#d97706;"></div>
+                        <div data-id="745" class="stage-header">
+                            <div data-id="746" class="stage-num" style="background:#d97706;color:#0a0f1e;">9</div>
+                            <span data-id="747" class="stage-badge" style="color:#d97706;">STAGE 9 OF 9 &ensp;·&ensp; MISSION ASSURANCE &ensp;·&ensp; LOOP CLOSED ↺</span>
+                            <span data-id="748" class="sdf-pill" style="background:#d97706;color:#0a0f1e;font-weight:700;">CLOSED-LOOP INTELLIGENCE</span>
+                        </div>
+                        <div data-id="749" style="font-size:11px;color:#64748b;margin-top:4px;">Mission Assurance · Closed-Loop Intelligence ↺</div>
+                        <div data-id="750" class="section-label" style="color:#64748b;">WHAT HAPPENED</div>
+                        <p data-id="751" class="section-text">Patterns strengthen across environments. You see assurance grow predictably.</p>
+
+                        <!-- Feedback loop visual -->
+                        <div data-id="752" class="s5-feedback-loop-s5" style="margin-top:12px;">
+                            <div data-id="753" class="s4-loop-dots">
+                                <div data-id="754" class="s4-loop-dot" style="background:#1e3a8a;"></div>
+                                <div data-id="755" class="s4-loop-line"></div>
+                                <div data-id="756" class="s4-loop-dot" style="background:#0d9488;"></div>
+                                <div data-id="757" class="s4-loop-line"></div>
+                                <div data-id="758" class="s4-loop-dot" style="background:#0891b2;"></div>
+                                <div data-id="759" class="s4-loop-line"></div>
+                                <div data-id="760" class="s4-loop-dot" style="background:#d97706;"></div>
+                                <div data-id="761" class="s4-loop-line"></div>
+                                <div data-id="762" class="s4-loop-dot" style="background:#7c3aed;"></div>
+                                <div data-id="763" class="s4-loop-line"></div>
+                                <div data-id="764" class="s4-loop-dot" style="background:#15803d;"></div>
+                                <div data-id="765" class="s4-loop-line"></div>
+                                <div data-id="766" class="s4-loop-dot" style="background:#0f766e;"></div>
+                                <div data-id="767" class="s4-loop-line"></div>
+                                <div data-id="768" class="s4-loop-dot" style="background:#ea580c;"></div>
+                                <div data-id="769" class="s4-loop-line"></div>
+                                <div data-id="770" class="s4-loop-dot" style="background:#d97706;"></div>
+                            </div>
+                            <div data-id="771" class="s4-feedback-arrow"></div>
+                            <div data-id="772" class="s4-feedback-loop-text">↺ Loop closes — Mission Assurance feeds back to Program Scale Signals</div>
+                        </div>
+
+                        <div data-id="773" class="s5-stage-progress"><div data-id="774" class="s5-stage-progress-fill" style="width:100%;background:#d97706;"></div></div>
+                    </div>
+
+                </div><!-- end stage cards -->
+
+                <!-- PLATFORM STANDARD CLOSING CARD -->
+                <div data-id="775" class="s5-platform-card" id="s5-platform-card-d7e8">
+                    <div data-id="776" style="font-size:10px;font-weight:700;color:#d97706;letter-spacing:2.5px;text-transform:uppercase;">PLATFORM STANDARD</div>
+                    <div data-id="777" style="font-size:28px;font-weight:800;color:#fff;margin-top:12px;">GOVERNANCE GUARD AT SCALE</div>
+                    <div data-id="778" style="font-size:13px;color:#94a3b8;margin-top:8px;">Governed Operational Behavior Gate · Program-Level Enforcement</div>
+
+                    <div data-id="779" style="height:1px;background:rgba(217,119,6,0.3);margin:24px 0;"></div>
+
+                    <div data-id="780" style="font-size:18px;font-weight:700;color:#d97706;line-height:1.6;">This is where classification becomes authorization.</div>
+                    <div data-id="781" style="font-size:18px;font-weight:700;color:#f5a623;line-height:1.6;">And authorization becomes trust.</div>
+
+                    <div data-id="782" style="height:1px;background:rgba(255,255,255,0.08);margin:24px 0;"></div>
+
+                    <!-- Three-tier cardinal rules -->
+                    <div data-id="783" style="margin-bottom:16px;">
+                        <div data-id="784" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">TIER 1 — SDF CORE</div>
+                        <div data-id="785" style="font-size:16px;font-weight:700;margin-top:6px;line-height:1.5;">
+                            <span data-id="786" style="color:#1e3a8a;">The classification</span> <span data-id="787" style="color:#f5a623;">of the data</span> <span data-id="788" style="color:#8b5cf6;">determines the permission</span> <span data-id="789" style="color:#22c55e;">of the agent.</span>
+                        </div>
+                    </div>
+
+                    <div data-id="790" style="margin-bottom:16px;">
+                        <div data-id="791" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">TIER 2 — ATO PIPELINE</div>
+                        <div data-id="792" style="font-size:16px;font-weight:700;margin-top:6px;line-height:1.5;">
+                            <span data-id="793" style="color:#0d9488;">The classification</span> <span data-id="794" style="color:#06b6d4;">of the signal</span> <span data-id="795" style="color:#8b5cf6;">determines the authorization posture</span> <span data-id="796" style="color:#22c55e;">of the system.</span>
+                        </div>
+                    </div>
+
+                    <div data-id="797">
+                        <div data-id="798" style="font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;">TIER 3 — CLOSED-LOOP MISSION</div>
+                        <div data-id="799" style="font-size:22px;font-weight:800;color:#d97706;margin-top:6px;line-height:1.5;">Classification governs the action. Assurance governs the mission.</div>
+                    </div>
+
+                    <div data-id="800" style="height:1px;background:rgba(255,255,255,0.08);margin:24px 0;"></div>
+
+                    <div data-id="801" style="font-size:15px;font-weight:500;color:#fff;font-style:italic;">That's not a prototype. That's a platform standard.</div>
+
+                    <div data-id="802" style="margin-top:24px;">
+                        <button data-id="803" class="run-again-btn" id="s5-run-again-f9g0">↺&ensp;Run Again</button>
+                    </div>
+                </div>
+
+            </div><!-- end sim container -->
+        </div><!-- end story5 -->
+
+    </main>
+
+    <!-- ═══ PAYLOAD MODAL ═══ -->
+    <div data-id="804" class="modal-overlay" id="payload-modal-s9t0">
+        <div data-id="805" class="modal-card" id="modal-card-u1v2">
+            <button data-id="806" class="modal-close" id="modal-close-w3x4">✕</button>
+            <div data-id="807" class="modal-header">
+                <span data-id="808" class="modal-title">MCP Context Payload</span>
+                <span data-id="809" class="modal-pill">ca-event-0607-001</span>
+            </div>
+            <p data-id="810" class="modal-subtitle">The 8-field structured payload that crosses the MCP → Governance Guard boundary</p>
+            <div data-id="811" style="overflow-x:auto;">
+                <table data-id="812" class="payload-table">
+                    <thead data-id="813">
+                        <tr data-id="814">
+                            <th data-id="815">Field</th>
+                            <th data-id="816">Value</th>
+                            <th data-id="817">Why It Matters</th>
+                        </tr>
+                    </thead>
+                    <tbody data-id="818">
+                        <tr data-id="819">
+                            <td data-id="820" class="field-name">event_id</td>
+                            <td data-id="821" class="field-value">ca-event-0607-001</td>
+                            <td data-id="822" class="field-why">Unique identifier linking all 6 audit steps</td>
+                        </tr>
+                        <tr data-id="823">
+                            <td data-id="824" class="field-name">risk_level</td>
+                            <td data-id="825" class="field-value">HIGH</td>
+                            <td data-id="826" class="field-why">Raw severity from Compliance Assistant</td>
+                        </tr>
+                        <tr data-id="827">
+                            <td data-id="828" class="field-name">entity_id</td>
+                            <td data-id="829" class="field-value">hive-prod-cluster-07</td>
+                            <td data-id="830" class="field-why">The affected production entity</td>
+                        </tr>
+                        <tr data-id="831" class="highlight">
+                            <td data-id="832" class="field-name">sdf_tier</td>
+                            <td data-id="833" class="field-value" style="color:#f5a623;font-weight:700;">FAILURE</td>
+                            <td data-id="834" class="field-why">⭐ THE authorization field — determines agent permission level</td>
+                        </tr>
+                        <tr data-id="835">
+                            <td data-id="836" class="field-name">permission</td>
+                            <td data-id="837" class="field-value">REMEDIATE (guardrailed)</td>
+                            <td data-id="838" class="field-why">What the agent is allowed to do — and nothing more</td>
+                        </tr>
+                        <tr data-id="839">
+                            <td data-id="840" class="field-name">policy_refs</td>
+                            <td data-id="841" class="field-value">OMB-M-25-21 · NIST-IR-8011</td>
+                            <td data-id="842" class="field-why">Regulatory control citations for audit mapping</td>
+                        </tr>
+                        <tr data-id="843">
+                            <td data-id="844" class="field-name">lineage_id</td>
+                            <td data-id="845" class="field-value">ca-event-0607-001</td>
+                            <td data-id="846" class="field-why">Causal chain anchor — links signal → classification → action</td>
+                        </tr>
+                        <tr data-id="847">
+                            <td data-id="848" class="field-name">timestamp</td>
+                            <td data-id="849" class="field-value">2026-07-19T15:36:00Z</td>
+                            <td data-id="850" class="field-why">Immutable record creation time</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div data-id="851" style="margin-top:20px;">
+                <p data-id="852" style="font-size:13px;color:#94a3b8;line-height:1.6;"><strong data-id="853" style="color:#f5a623;">sdf_tier</strong> is the only field Governance Guard reads first. FAILURE → REMEDIATE. DEFECT → INVESTIGATE. SIGNAL → OBSERVE.</p>
+                <p data-id="854" style="font-size:13px;color:#94a3b8;line-height:1.6;margin-top:8px;"><strong data-id="855" style="color:#cbd5e1;">lineage_id</strong> links every downstream decision back to this originating event — your complete, queryable audit chain.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer data-id="856" class="app-footer" id="footer-main-y5z6">
+        <div data-id="857">
+            <span data-id="858" class="footer-text">SDF Governance Guard · Signal–Defect–Failure · Classification-Governed Agentic Operations · Made by Copilot</span>
+            <p data-id="859" class="footer-text" style="margin-top:4px;">Five Stories · Signal–Defect–Failure · Dynatrace MCP Challenge Submission · Azure-hosted · Open in any browser</p>
+        </div>
+        <span data-id="860" class="footer-text">Discipline Consulting Group LLC × Dynatrace</span>
+    </footer>
+
+    <script>
+    // Guard lucide icons
+    if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+        lucide.createIcons();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // ═══ TAB SWITCHING ═══
+        var tabs = document.querySelectorAll('.tab-btn');
+        var overviewPanel = document.getElementById('overview-panel');
+        var story1 = document.getElementById('story1-panel-k1l2');
+        var story2 = document.getElementById('story2-panel-k7l8');
+        var story3 = document.getElementById('story3-panel-b3c4');
+        var story4 = document.getElementById('story4-panel-s3t4');
+        var story5 = document.getElementById('story5-panel-p3q4');
+
+        function switchTab(target) {
+            tabs.forEach(function(t) { t.classList.remove('active'); });
+            // Find and activate the matching tab button
+            tabs.forEach(function(t) {
+                if (t.getAttribute('data-tab') === target) {
+                    t.classList.add('active');
+                }
+            });
+            overviewPanel.style.display = target === 'overview' ? 'block' : 'none';
+            story1.style.display = target === 'story1' ? 'block' : 'none';
+            story2.style.display = target === 'story2' ? 'block' : 'none';
+            story3.style.display = target === 'story3' ? 'block' : 'none';
+            story4.style.display = target === 'story4' ? 'block' : 'none';
+            story5.style.display = target === 'story5' ? 'block' : 'none';
+        }
+
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                var target = tab.getAttribute('data-tab');
+                switchTab(target);
+            });
+        });
+
+        // Overview nav buttons
+        document.getElementById('overview-go-story1').addEventListener('click', function() {
+            switchTab('story1');
+        });
+        document.getElementById('overview-go-story5').addEventListener('click', function() {
+            switchTab('story5');
+        });
+
+        // ═══ STORY 1 — SIMULATION STATE MACHINE ═══
+        var simState = 'idle';
+        var simTimeouts = [];
+
+        var ctaContainer = document.getElementById('cta-container-m3n4');
+        var stagesContainer = document.getElementById('stages-container-q7r8');
+        var runSimBtn = document.getElementById('run-sim-btn-o5p6');
+        var resetBtn = document.getElementById('reset-btn-s9t0');
+        var runAgainBtn = document.getElementById('run-again-btn-i5j6');
+        var cardinalCard = document.getElementById('cardinal-card-g3h4');
+
+        var stageCards = [
+            document.getElementById('stage1-card-u1v2'),
+            document.getElementById('stage2-card-w3x4'),
+            document.getElementById('stage3-card-y5z6'),
+            document.getElementById('stage4-card-a7b8'),
+            document.getElementById('stage5-card-c9d0'),
+            document.getElementById('stage6-card-e1f2')
+        ];
+
+        var stageTimings = [400, 1500, 2600, 3700, 4800, 5900];
+        var cardinalTiming = 7200;
+
+        function resetSimulation() {
+            simTimeouts.forEach(function(t) { clearTimeout(t); });
+            simTimeouts = [];
+            stageCards.forEach(function(card) {
+                card.classList.remove('revealed', 'glowing');
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(24px)';
+                card.style.pointerEvents = 'none';
+            });
+            cardinalCard.classList.remove('revealed');
+            cardinalCard.style.opacity = '0';
+            cardinalCard.style.transform = 'translateY(24px)';
+            cardinalCard.style.pointerEvents = 'none';
+            stagesContainer.style.opacity = '0';
+            setTimeout(function() {
+                stagesContainer.classList.remove('visible');
+                stagesContainer.style.opacity = '';
+                resetBtn.classList.remove('visible');
+                ctaContainer.style.display = 'flex';
+                setTimeout(function() { ctaContainer.style.opacity = '1'; }, 20);
+            }, 300);
+            simState = 'idle';
+        }
+
+        function startSimulation() {
+            if (simState === 'running') return;
+            simState = 'running';
+            ctaContainer.style.opacity = '0';
+            setTimeout(function() {
+                ctaContainer.style.display = 'none';
+                stagesContainer.classList.add('visible');
+                resetBtn.classList.add('visible');
+                stageCards.forEach(function(card, i) {
+                    var t = setTimeout(function() {
+                        card.classList.add('revealed', 'glowing');
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                        card.style.pointerEvents = 'auto';
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        var glowTimeout = setTimeout(function() {
+                            card.classList.remove('glowing');
+                        }, 2000);
+                        simTimeouts.push(glowTimeout);
+                    }, stageTimings[i]);
+                    simTimeouts.push(t);
+                });
+                var ct = setTimeout(function() {
+                    cardinalCard.classList.add('revealed');
+                    cardinalCard.style.opacity = '1';
+                    cardinalCard.style.transform = 'translateY(0)';
+                    cardinalCard.style.pointerEvents = 'auto';
+                    cardinalCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    simState = 'complete';
+                }, cardinalTiming);
+                simTimeouts.push(ct);
+            }, 300);
+        }
+
+        runSimBtn.addEventListener('click', startSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        runAgainBtn.addEventListener('click', resetSimulation);
+
+        // ═══ PAYLOAD MODAL ═══
+        var payloadModal = document.getElementById('payload-modal-s9t0');
+        var payloadLink = document.getElementById('payload-link-u7v8');
+        var modalClose = document.getElementById('modal-close-w3x4');
+        var modalCard = document.getElementById('modal-card-u1v2');
+
+        payloadLink.addEventListener('click', function() {
+            payloadModal.classList.add('open');
+        });
+        modalClose.addEventListener('click', function() {
+            payloadModal.classList.remove('open');
+        });
+        payloadModal.addEventListener('click', function(e) {
+            if (e.target === payloadModal) {
+                payloadModal.classList.remove('open');
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && payloadModal.classList.contains('open')) {
+                payloadModal.classList.remove('open');
+            }
+        });
+
+        // ═══ HANDOFF EXPLORER ═══
+        var handoffBtns = document.querySelectorAll('.handoff-btn');
+        var handoffPanels = document.querySelectorAll('.handoff-panel');
+
+        handoffBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var target = btn.getAttribute('data-handoff');
+                handoffBtns.forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                handoffPanels.forEach(function(p) {
+                    if (p.getAttribute('data-panel') === target) {
+                        p.style.display = 'block';
+                        void p.offsetHeight;
+                        p.classList.add('active');
+                    } else {
+                        p.classList.remove('active');
+                        setTimeout(function() { p.style.display = 'none'; }, 200);
+                    }
+                });
+            });
+        });
+
+        // ═══════════════════════════════════════════════
+        // ═══ STORY 3 — YOU DRIVE IT ═══
+        // ═══════════════════════════════════════════════
+
+        var s3State = 'intro'; // intro | running | complete
+        var s3Intro = document.getElementById('s3-intro-d5e6');
+        var s3SimContainer = document.getElementById('s3-sim-container-j1k2');
+        var s3StartBtn = document.getElementById('s3-start-btn-h9i0');
+        var s3ResetBtn = document.getElementById('s3-reset-btn-l3m4');
+        var s3RunAgainBtn = document.getElementById('s3-run-again-r7s8');
+
+        // Panels
+        var s3P1 = document.getElementById('s3-p1-f3g4');
+        var s3P2 = document.getElementById('s3-p2-v9w0');
+        var s3P3 = document.getElementById('s3-p3-j3k4');
+        var s3P4 = document.getElementById('s3-p4-b1c2');
+
+        // Inputs
+        var s3Framework = document.getElementById('s3-framework-h5i6');
+        var s3Event = document.getElementById('s3-event-j7k8');
+        var s3RiskSlider = document.getElementById('s3-risk-slider-l9m0');
+        var s3RiskPill = document.getElementById('s3-risk-pill-n1o2');
+        var s3SignalPreview = document.getElementById('s3-signal-preview-p3q4');
+        var s3PrevTier = document.getElementById('s3-prev-tier-r5s6');
+
+        // Buttons
+        var s3GenBtn = document.getElementById('s3-gen-btn-t7u8');
+        var s3NormalizeBtn = document.getElementById('s3-normalize-btn-h1i2');
+        var s3GovernBtn = document.getElementById('s3-govern-btn-z9a0');
+        var s3ExecuteBtn = document.getElementById('s3-execute-btn-h7i8');
+
+        // Outputs
+        var s3JsonBox = document.getElementById('s3-json-box-x1y2');
+        var s3NormalizeConfirm = document.getElementById('s3-normalize-confirm-f9g0');
+        var s3PolicyOutput = document.getElementById('s3-policy-output-r1s2');
+        var s3AllowedActions = document.getElementById('s3-allowed-actions-t3u4');
+        var s3GovernConfirm = document.getElementById('s3-govern-confirm-x7y8');
+        var s3ActionChecks = document.getElementById('s3-action-checks-d3e4');
+        var s3AuditRecord = document.getElementById('s3-audit-record-j9k0');
+        var s3ExecSummary = document.getElementById('s3-exec-summary-l1m2');
+        var s3AuditChain = document.getElementById('s3-audit-chain-n3o4');
+        var s3PlatformCard = document.getElementById('s3-platform-card-p5q6');
+
+        // Bypass
+        var s3BypassToggle = document.getElementById('s3-bypass-toggle-l5m6');
+        var s3BypassWarn = document.getElementById('s3-bypass-warn-n7o8');
+        var s3RestoreMsg = document.getElementById('s3-restore-msg-p9q0');
+        var s3Bypassed = false;
+
+        // Narrator
+        var s3NarratorBar = document.getElementById('s3-narrator-n5o6');
+        var s3NarratorToggle = document.getElementById('s3-narrator-toggle-p7q8');
+        var s3NarratorSteps = document.querySelectorAll('.narrator-step');
+
+        // Toggles
+        var s3TogPolicy = document.getElementById('s3-tog-policy-z3a4');
+        var s3TogDeps = document.getElementById('s3-tog-deps-b5c6');
+        var s3TogLineage = document.getElementById('s3-tog-lineage-d7e8');
+
+        // Cross-Framework
+        var s3XfwCard = document.getElementById('s3-xfw-card-v1w2');
+        var s3XfwHeader = document.getElementById('s3-xfw-header-x3y4');
+        var s3XfwTrigger = document.getElementById('s3-xfw-trigger-t9u0');
+
+        // Policy refs map
+        var policyMap = {
+            'DORA': 'OMB-M-25-21',
+            'NIST 800-53': 'NIST-IR-8011',
+            'Zero Trust': 'NIST-SP-800-207',
+            'FedRAMP High': 'FedRAMP-High-Baseline'
+        };
+
+        // ─── HELPERS ───
+        function getRiskLabel(val) {
+            val = parseInt(val);
+            if (val < 34) return { label: 'LOW', color: '#22c55e', tier: 'SIGNAL', bgColor: 'rgba(34,197,94,0.15)' };
+            if (val <= 67) return { label: 'MEDIUM', color: '#f59e0b', tier: 'DEFECT', bgColor: 'rgba(245,158,11,0.15)' };
+            return { label: 'HIGH', color: '#ef4444', tier: 'FAILURE', bgColor: 'rgba(239,68,68,0.15)' };
+        }
+
+        function getPermission(tier) {
+            if (tier === 'FAILURE') return 'REMEDIATE (guardrailed)';
+            if (tier === 'DEFECT') return 'INVESTIGATE';
+            return 'OBSERVE';
+        }
+
+        function updateSignalPreview() {
+            var risk = getRiskLabel(s3RiskSlider.value);
+            s3RiskPill.textContent = risk.label;
+            s3RiskPill.style.color = risk.color;
+            s3RiskPill.style.background = risk.bgColor;
+            s3PrevTier.textContent = risk.tier;
+            s3PrevTier.style.color = risk.color;
+            s3SignalPreview.innerHTML = '{ framework: "' + s3Framework.value + '", event: "' + s3Event.value + '", risk: "' + risk.label + '", sdf_tier: "<span style="color:' + risk.color + ';">' + risk.tier + '</span>" }';
+        }
+
+        function setNarratorStep(step) {
+            s3NarratorSteps.forEach(function(el) {
+                el.classList.toggle('active', parseInt(el.getAttribute('data-nstep')) === step);
+            });
+        }
+
+        function unlockPanel(panel) {
+            panel.classList.remove('locked');
+            panel.style.borderColor = 'var(--panel-color)';
+            panel.classList.add('active-glow');
+        }
+
+        function lockPanel(panel) {
+            panel.classList.add('locked');
+            panel.style.borderColor = '';
+            panel.classList.remove('active-glow', 'completed');
+        }
+
+        function completePanel(panel) {
+            panel.classList.remove('active-glow');
+            panel.classList.add('completed');
+        }
+
+        // ─── BUILD ALLOWED ACTIONS ───
+        function buildAllowedActions(tier) {
+            var html = '';
+            if (s3Bypassed) {
+                html = '<div style="color:#ef4444;font-weight:700;">⚡ UNGOVERNED — EXECUTING WITHOUT AUTHORIZATION</div>';
+            } else if (tier === 'FAILURE') {
+                html = '<div style="color:#22c55e;">✅ Restart pipeline (pre-approved playbook)</div>';
+                html += '<div style="color:#22c55e;">✅ Reprocess data (pre-approved playbook)</div>';
+                html += '<div style="color:#f59e0b;">⚠️ Failover region (human approval required)</div>';
+                html += '<div style="color:#64748b;text-decoration:line-through;">❌ Ignore event (not permitted — FAILURE tier)</div>';
+            } else if (tier === 'DEFECT') {
+                html = '<div style="color:#22c55e;">✅ Create investigation ticket</div>';
+                html += '<div style="color:#22c55e;">✅ Notify SRE on-call</div>';
+                html += '<div style="color:#f59e0b;">⚠️ Restart pipeline (requires validation)</div>';
+                html += '<div style="color:#64748b;text-decoration:line-through;">❌ Full remediation (not permitted — DEFECT tier)</div>';
+            } else {
+                html = '<div style="color:#22c55e;">✅ Log observation</div>';
+                html += '<div style="color:#22c55e;">✅ Update dashboard</div>';
+                html += '<div style="color:#64748b;text-decoration:line-through;">❌ Any remediation (not permitted — SIGNAL tier)</div>';
+                html += '<div style="color:#64748b;text-decoration:line-through;">❌ Alert escalation (not permitted — SIGNAL tier)</div>';
+            }
+            s3AllowedActions.innerHTML = html;
+        }
+
+        function buildPolicyOutput(tier) {
+            if (s3Bypassed) {
+                s3PolicyOutput.innerHTML = '<span style="color:#ef4444;">Policy: BYPASSED | Audit: NONE | Lineage: SEVERED</span>';
+                return;
+            }
+            if (tier === 'FAILURE') {
+                s3PolicyOutput.innerHTML = 'Automation allowed: <span class="val" style="color:#22c55e;">YES</span> · Human approval required: <span class="val" style="color:#f59e0b;">CONDITIONAL</span> · Risk threshold exceeded: <span class="val" style="color:#ef4444;">TRUE</span> · SDF Tier: <span class="val" style="color:#ef4444;font-weight:700;">FAILURE</span>';
+            } else if (tier === 'DEFECT') {
+                s3PolicyOutput.innerHTML = 'Automation allowed: <span class="val" style="color:#22c55e;">YES</span> · Human approval required: <span class="val" style="color:#22c55e;">NO</span> · Risk threshold exceeded: <span class="val" style="color:#22c55e;">FALSE</span> · SDF Tier: <span class="val" style="color:#f59e0b;font-weight:700;">DEFECT</span>';
+            } else {
+                s3PolicyOutput.innerHTML = 'Automation allowed: <span class="val" style="color:#22c55e;">YES</span> · Human approval required: <span class="val" style="color:#22c55e;">NO</span> · Risk threshold exceeded: <span class="val" style="color:#22c55e;">FALSE</span> · SDF Tier: <span class="val" style="color:#22c55e;font-weight:700;">SIGNAL</span>';
+            }
+        }
+
+        function buildActionCheckboxes(tier) {
+            var items = [];
+            if (tier === 'FAILURE') {
+                items = [
+                    { label: 'Restart pipeline', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Reprocess data', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Failover region (needs approval)', cls: 'needs-approval', checked: false, enabled: false },
+                    { label: 'Ignore event (blocked)', cls: 'blocked', checked: false, enabled: false }
+                ];
+            } else if (tier === 'DEFECT') {
+                items = [
+                    { label: 'Create investigation ticket', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Notify SRE on-call', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Restart pipeline (greyed)', cls: 'needs-approval', checked: false, enabled: false },
+                    { label: 'Full remediation (blocked)', cls: 'blocked', checked: false, enabled: false }
+                ];
+            } else {
+                items = [
+                    { label: 'Log observation', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Update dashboard', cls: 'allowed', checked: true, enabled: true },
+                    { label: 'Any remediation (blocked)', cls: 'blocked', checked: false, enabled: false },
+                    { label: 'Alert escalation (blocked)', cls: 'blocked', checked: false, enabled: false }
+                ];
+            }
+            var html = '';
+            items.forEach(function(item, idx) {
+                html += '<div class="s3-check-item ' + item.cls + '"><input type="checkbox" id="s3chk' + idx + '" ' + (item.checked ? 'checked' : '') + ' ' + (!item.enabled ? 'disabled' : '') + '><label for="s3chk' + idx + '">' + item.label + '</label></div>';
+            });
+            s3ActionChecks.innerHTML = html;
+        }
+
+        // ─── TYPEWRITER ───
+        var s3TypewriterTimeout = null;
+        function typewriterJSON(text, el, cb) {
+            if (s3TypewriterTimeout) clearTimeout(s3TypewriterTimeout);
+            el.innerHTML = '';
+            var i = 0;
+            function typeChar() {
+                if (i < text.length) {
+                    el.innerHTML = text.substring(0, i + 1);
+                    i++;
+                    s3TypewriterTimeout = setTimeout(typeChar, 18);
+                } else {
+                    if (cb) cb();
+                }
+            }
+            typeChar();
+        }
+
+        // ─── INPUT EVENTS ───
+        s3RiskSlider.addEventListener('input', updateSignalPreview);
+        s3Framework.addEventListener('change', updateSignalPreview);
+        s3Event.addEventListener('change', updateSignalPreview);
+
+        // ─── NARRATOR TOGGLE ───
+        s3NarratorToggle.addEventListener('click', function() {
+            s3NarratorBar.classList.toggle('collapsed');
+        });
+
+        // ─── TOGGLE SWITCHES ───
+        [s3TogPolicy, s3TogDeps, s3TogLineage].forEach(function(tog) {
+            tog.addEventListener('click', function() {
+                tog.classList.toggle('on');
+            });
+        });
+
+        // ─── BYPASS TOGGLE ───
+        s3BypassToggle.addEventListener('click', function() {
+            s3Bypassed = !s3Bypassed;
+            s3BypassToggle.classList.toggle('red-on', s3Bypassed);
+            s3BypassWarn.classList.toggle('visible', s3Bypassed);
+            if (s3Bypassed) {
+                s3RestoreMsg.classList.remove('visible');
+                s3P3.style.background = 'rgba(239,68,68,0.08)';
+                s3P3.style.borderColor = '#ef4444';
+                s3P4.style.background = 'rgba(239,68,68,0.08)';
+                s3P4.style.borderColor = '#ef4444';
+            } else {
+                s3RestoreMsg.classList.add('visible');
+                setTimeout(function() { s3RestoreMsg.classList.remove('visible'); }, 3000);
+                s3P3.style.background = '#141929';
+                s3P3.style.borderColor = '';
+                s3P4.style.background = '#141929';
+                s3P4.style.borderColor = '';
+            }
+            var risk = getRiskLabel(s3RiskSlider.value);
+            buildPolicyOutput(risk.tier);
+            buildAllowedActions(risk.tier);
+        });
+
+        // ─── CROSS-FRAMEWORK ───
+        s3XfwHeader.addEventListener('click', function() {
+            s3XfwCard.classList.toggle('expanded');
+        });
+        s3XfwTrigger.addEventListener('click', function() {
+            s3XfwCard.classList.add('expanded');
+            s3XfwCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // ─── CACHED STATE ───
+        var s3CachedTier = 'FAILURE';
+        var s3CachedRisk = 'HIGH';
+        var s3CachedFramework = 'DORA';
+        var s3CachedEvent = 'Deployment change failure';
+
+        // ═══ START SIMULATION ═══
+        s3StartBtn.addEventListener('click', function() {
+            if (s3State === 'running' || s3State === 'complete') return;
+            s3State = 'running';
+            s3Intro.style.opacity = '0';
+            setTimeout(function() {
+                s3Intro.style.display = 'none';
+                s3SimContainer.style.display = 'block';
+
+                // Unlock only panel 1
+                unlockPanel(s3P1);
+                lockPanel(s3P2);
+                lockPanel(s3P3);
+                lockPanel(s3P4);
+                setNarratorStep(1);
+            }, 300);
+        });
+
+        // ═══ PANEL 1 → GENERATE ═══
+        s3GenBtn.addEventListener('click', function() {
+            var risk = getRiskLabel(s3RiskSlider.value);
+            s3CachedTier = risk.tier;
+            s3CachedRisk = risk.label;
+            s3CachedFramework = s3Framework.value;
+            s3CachedEvent = s3Event.value;
+
+            // Disable inputs
+            s3Framework.disabled = true;
+            s3Event.disabled = true;
+            s3RiskSlider.disabled = true;
+            s3GenBtn.disabled = true;
+            s3GenBtn.textContent = 'Generating...';
+
+            setTimeout(function() {
+                s3GenBtn.textContent = '✓  Signal Generated';
+                completePanel(s3P1);
+
+                // Unlock P2
+                unlockPanel(s3P2);
+                setNarratorStep(2);
+
+                // Build JSON
+                var policyRef = policyMap[s3CachedFramework] || 'OMB-M-25-21';
+                var tierColor = risk.color;
+                var jsonLines = [
+                    '{',
+                    '  "event_id": "ca-event-0607-001",',
+                    '  "framework": "' + s3CachedFramework + '",',
+                    '  "event_type": "' + s3CachedEvent + '",',
+                    '  "risk_level": "' + s3CachedRisk + '",',
+                    '  "sdf_tier": "<span style=\\"color:' + tierColor + ';font-weight:700;\\">' + s3CachedTier + '</span>",',
+                    '  "policy_refs": "' + policyRef + '",',
+                    '  "lineage_id": "ca-event-0607-001", <span style=\\"font-size:10px;font-style:italic;color:#f5a623;\\">← seen in Story 2</span>',
+                    '  "timestamp": "2026-07-20T09:48:00Z"',
+                    '}'
+                ];
+                typewriterJSON(jsonLines.join('\n'), s3JsonBox);
+
+                // Update policy and actions for P3
+                buildPolicyOutput(s3CachedTier);
+                buildAllowedActions(s3CachedTier);
+                buildActionCheckboxes(s3CachedTier);
+
+                s3P2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 500);
+        });
+
+        // ═══ PANEL 2 → NORMALIZE ═══
+        s3NormalizeBtn.addEventListener('click', function() {
+            // Flash JSON lines
+            s3NormalizeBtn.disabled = true;
+            var lines = s3JsonBox.textContent.split('\n');
+            var flashIdx = 0;
+            function flashNext() {
+                if (flashIdx < lines.length) {
+                    s3JsonBox.classList.add('json-highlight');
+                    setTimeout(function() {
+                        s3JsonBox.classList.remove('json-highlight');
+                        flashIdx++;
+                        setTimeout(flashNext, 80);
+                    }, 150);
+                } else {
+                    s3NormalizeConfirm.style.display = 'block';
+                    s3NormalizeBtn.textContent = '✓  Context Normalized';
+                    completePanel(s3P2);
+                    unlockPanel(s3P3);
+                    setNarratorStep(3);
+                    s3P3.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            flashNext();
+        });
+
+        // ═══ PANEL 3 → GOVERN ═══
+        s3GovernBtn.addEventListener('click', function() {
+            if (s3Bypassed) {
+                // Still allow proceeding in bypass mode
+            }
+            s3GovernBtn.disabled = true;
+
+            // Flash policy output
+            s3PolicyOutput.classList.add('json-highlight');
+            setTimeout(function() {
+                s3PolicyOutput.classList.remove('json-highlight');
+                s3GovernConfirm.style.display = 'block';
+                s3GovernBtn.textContent = '✓  Governance Decision Recorded';
+                completePanel(s3P3);
+                unlockPanel(s3P4);
+                setNarratorStep(4);
+                s3P4.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 600);
+        });
+
+        // ═══ PANEL 4 → EXECUTE ═══
+        s3ExecuteBtn.addEventListener('click', function() {
+            s3ExecuteBtn.disabled = true;
+            s3ExecuteBtn.textContent = 'Executing...';
+
+            setTimeout(function() {
+                s3ExecuteBtn.textContent = '✓  Action Executed';
+                completePanel(s3P4);
+
+                // Dim panels
+                [s3P1, s3P2, s3P3, s3P4].forEach(function(p) { p.style.opacity = '0.6'; });
+
+                // Gather checked actions
+                var checkedActions = [];
+                s3ActionChecks.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+                    var lbl = cb.nextElementSibling;
+                    if (lbl) checkedActions.push(lbl.textContent);
+                });
+
+                var policyRef = policyMap[s3CachedFramework] || 'OMB-M-25-21';
+
+                // Build exec summary
+                s3ExecSummary.innerHTML =
+                    '<span class="val">Source:</span> Compliance Assistant · Davis AI<br>' +
+                    '<span class="val">Event ID:</span> ca-event-0607-001<br>' +
+                    '<span class="val">Framework:</span> ' + s3CachedFramework + ' · SDF Tier: <span style="color:' + getRiskLabel(s3RiskSlider.value).color + ';font-weight:700;">' + s3CachedTier + '</span><br>' +
+                    '<span class="val">Policy Refs:</span> ' + policyRef + '<br>' +
+                    '<span class="val">Actions Executed:</span> ' + (checkedActions.length > 0 ? checkedActions.join(', ') : 'None selected') + '<br>' +
+                    '<span class="val">Execution Mode:</span> ' + (s3Bypassed ? '<span style="color:#ef4444;">UNGOVERNED</span>' : 'GOVERNED (Playbook-constrained)') + '<br>' +
+                    '<span class="val">Timestamp:</span> 2026-07-20T09:48:00Z';
+
+                s3AuditChain.innerHTML =
+                    '<span class="val">lineage_id:</span> ca-event-0607-001<br>' +
+                    '<span class="val">Chain Length:</span> 4 steps<br>' +
+                    '<span class="val">Step 1:</span> Signal detected · Compliance Assistant<br>' +
+                    '<span class="val">Step 2:</span> Context normalized · MCP<br>' +
+                    '<span class="val">Step 3:</span> Policy enforced · Governance Guard<br>' +
+                    '<span class="val">Step 4:</span> Action executed · Governed Agent<br>' +
+                    '<span class="val">Storage:</span> Grail · Status: IMMUTABLE<br>' +
+                    '<span style="font-size:10px;color:#f5a623;font-style:italic;">← This is the lineage chain that animated in Story 1</span><!--element content stripped-->
